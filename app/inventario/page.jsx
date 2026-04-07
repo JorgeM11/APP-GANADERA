@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, Scale, Plus, X, Syringe, ClipboardPlus, CalendarPlus } from 'lucide-react';
+import { Search, SlidersHorizontal, Scale, Plus, X, Syringe, ClipboardPlus } from 'lucide-react';
 
 const mockAnimals = [
   {
@@ -35,9 +35,10 @@ const mockAnimals = [
   },
 ];
 
+// AQUÍ ESTÁ LA CONEXIÓN: Añadí la propiedad `href` para enrutar
 const actionOptions = [
-  { label: 'Vacunación por Lotes', icon: Syringe },
-  { label: 'Nuevo Registro', icon: ClipboardPlus },
+  { label: 'Vacunación por Lotes', icon: Syringe, href: '#' },
+  { label: 'Nuevo Registro', icon: ClipboardPlus, href: '/inventario/nuevo' },
 ];
 
 export default function InventarioPage() {
@@ -140,9 +141,11 @@ export default function InventarioPage() {
             {actionOptions.map((option, index) => {
               const Icon = option.icon;
               return (
-                <button 
+                /* AQUÍ CAMBIAMOS EL BUTTON POR UN LINK PARA LA NAVEGACIÓN */
+                <Link 
                   key={index}
-                  className="flex items-center gap-3 bg-white rounded-full py-2.5 px-4 shadow-lg border border-neutral-100 group hover:bg-neutral-50 transition-colors"
+                  href={option.href}
+                  className="flex items-center gap-3 bg-white rounded-full py-2.5 px-4 shadow-lg border border-neutral-100 group hover:bg-neutral-50 transition-colors cursor-pointer"
                 >
                   <span className="text-sm font-semibold text-neutral-800 group-hover:text-emerald-950">
                     {option.label}
@@ -150,7 +153,7 @@ export default function InventarioPage() {
                   <div className="bg-[#1B4820] p-2.5 rounded-full text-white shadow">
                     <Icon className="w-4.5 h-4.5" />
                   </div>
-                </button>
+                </Link>
               );
             })}
           </div>
