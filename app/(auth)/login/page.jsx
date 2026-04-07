@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Tractor, ArrowRight } from "lucide-react";
 import InputField from "../../components/ui/InputField";
 import PrimaryButton from "../../components/ui/PrimaryButton";
+import { supabase } from "@/lib/supabaseClient";
 
 const loginSchema = z.object({
   email: z
@@ -20,6 +22,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
 
@@ -36,10 +39,25 @@ export default function LoginPage() {
     setIsLoading(true);
     setServerError(null);
     try {
-      console.log("[Terra Form] Login payload:", data);
-      await new Promise((r) => setTimeout(r, 1200));
-    } catch {
-      setServerError("Correo o contraseña incorrectos. Intenta de nuevo.");
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) throw error;
+
+      if (authData.session) {
+        // El Refresh Token ya quedó guardado en localStorage automáticamente.
+        // El ganadero no necesitará volver a loguearse, incluso offline.
+        router.push("/inventario");
+      }
+    } catch (error) {
+      const msg = error?.message || "";
+      if (msg === "Failed to fetch") {
+        setServerError("Necesitas conexión a internet para iniciar sesión por primera vez.");
+      } else {
+        setServerError("Correo o contraseña incorrectos. Intenta de nuevo.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -54,7 +72,7 @@ export default function LoginPage() {
           {/* ─── BRANDING ─── */}
           <div className="flex flex-col items-center gap-[14px] mb-10">
             {/* Squircle con ícono tractor */}
-            <div className="w-[88px] h-[88px] rounded-3xl bg-primary flex items-center justify-center">
+            <div className="w-[80px] h-[80px] rounded-3xl bg-primary-container flex items-center justify-center">
               <Tractor size={44} strokeWidth={1.5} className="text-primary-fixed" />
             </div>
 
@@ -70,7 +88,7 @@ export default function LoginPage() {
           </div>
 
           {/* ─── CARD DEL FORMULARIO ─── */}
-          <div className="w-full bg-surface-container rounded-[28px] p-7">
+          <div className="w-full bg-surface-container-low rounded-[28px] p-7">
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col">
 
               {/* Campo: Correo Electrónico */}
@@ -94,12 +112,7 @@ export default function LoginPage() {
                 >
                   Contraseña
                 </label>
-                <a
-                  href="/recuperar-contrasena"
-                  className="font-sans text-xs font-bold text-primary no-underline transition-opacity hover:opacity-80"
-                >
-                  ¿Olvidaste tu contraseña?
-                </a>
+
               </div>
 
               {/* Campo: Contraseña */}
