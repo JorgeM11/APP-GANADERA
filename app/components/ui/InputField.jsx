@@ -46,10 +46,7 @@ export default function InputField({
 
       {/* Input wrapper */}
       <div
-        className={`relative flex items-center transition-all duration-200 bg-surface-container-lowest rounded-xl min-h-[56px] border-[1.5px] outline-none ${error
-          ? "border-error border-2"
-          : "border-outline-variant focus-within:border-primary-container focus-within:border-2"
-          }`}
+        className={`relative flex items-center transition-all duration-200 bg-surface-container-lowest rounded-full min-h-[56px] outline-none ${error ? "ring-2 ring-error" : ""}`}
       >
         {/* Left icon */}
         {Icon && (
@@ -68,8 +65,8 @@ export default function InputField({
             error ? `${id}-error` : hint ? `${id}-hint` : undefined
           }
           {...registration}
-          className={`w-full bg-transparent outline-none text-on-surface font-sans text-base py-3.5 ${Icon ? "pl-12" : "pl-4"
-            } ${isPassword ? "pr-12" : "pr-4"}`}
+          className={`w-full bg-transparent outline-none text-on-surface font-sans text-base py-3.5 placeholder:text-outline-variant placeholder:font-normal placeholder:opacity-80 ${Icon ? "pl-12" : "pl-6"
+            } ${isPassword ? "pr-12" : "pr-6"}`}
         />
 
         {/* Toggle visibilidad de contraseña */}
