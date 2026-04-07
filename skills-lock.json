@@ -20,6 +20,21 @@
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
       "computedHash": "d45d1c177b16c30d1bf6f07821588dd4edd1a14bef91a0692c447416939441c6"
+    },
+    "tailwind-best-practices": {
+      "source": "mastra-ai/mastra",
+      "sourceType": "github",
+      "computedHash": "7a94bb24f938aec684feaf5d93e862bc3c854d86d7d7d472293be793a2f4bda2"
+    },
+    "tailwind-responsive-design": {
+      "source": "thebushidocollective/han",
+      "sourceType": "github",
+      "computedHash": "be0e7e40bdd242626c000a68ee022a7820202e9c03e764bf7ed92ea94f41e14e"
+    },
+    "tailwindcss-animations": {
+      "source": "josiahsiegel/claude-plugin-marketplace",
+      "sourceType": "github",
+      "computedHash": "a3ff1c497a4c106d83f2342b30569257bbde3d12a40dde21b84ff693e3767bf0"
     }
   }
 }
