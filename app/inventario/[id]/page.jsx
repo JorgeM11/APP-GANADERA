@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, List, TrendingUp, ShieldPlus, Share2 } from 'lucide-react';
+import { ArrowLeft, List, TrendingUp, ShieldPlus, Share2, Baby } from 'lucide-react';
 
 // Importación de Módulos
 import DetailsTab from '../../components/DetailsTab';
 import EvolutionTab from '../../components/EvolutionTab';
 import HealthTab from '../../components/HealthTab';
 import GenealogyTab from '../../components/GenealogyTab';
+import ReproductionTab from '../../components/ReproductionTab';
 
 export default function AnimalProfilePage() {
   const [activeTab, setActiveTab] = useState('details');
@@ -23,12 +24,20 @@ export default function AnimalProfilePage() {
     }
   }, []);
 
-  const navItems = [
+  // MOCK temporal para la condición (cambiando a "Macho" desaparecerá la visualización de la pestaña)
+  const mockAnimal = { id: '#482', sexo: 'Hembra' };
+
+  let navItems = [
     { id: 'details', label: 'Detalles', icon: List },
     { id: 'evolution', label: 'Evolución', icon: TrendingUp },
     { id: 'health', label: 'Salud', icon: ShieldPlus },
-    { id: 'genealogy', label: 'Genealogía', icon: Share2 },
   ];
+
+  if (mockAnimal.sexo === 'Hembra') {
+    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: Baby });
+  }
+
+  navItems.push({ id: 'genealogy', label: 'Genealogía', icon: Share2 });
 
   return (
     <main className="min-h-screen bg-[#F7F7F2] font-sans pb-24 md:pb-8 relative">
@@ -41,7 +50,8 @@ export default function AnimalProfilePage() {
         <h1 className="text-xl font-bold text-[#1B4820]">
           {activeTab === 'details' ? 'Ficha del Animal' : 
            activeTab === 'evolution' ? 'Evolución del Animal' : 
-           activeTab === 'health' ? 'Carnet de Salud' : 'Genealogía'}
+           activeTab === 'health' ? 'Carnet de Salud' : 
+           activeTab === 'reproduction' ? 'Registro Reproductivo' : 'Genealogía'}
         </h1>
       </header>
 
@@ -67,6 +77,7 @@ export default function AnimalProfilePage() {
           {activeTab === 'details' && <DetailsTab />}
           {activeTab === 'evolution' && <EvolutionTab />}
           {activeTab === 'health' && <HealthTab />}
+          {activeTab === 'reproduction' && <ReproductionTab animalId={mockAnimal.id} />}
           {activeTab === 'genealogy' && <GenealogyTab />}
         </div>
       </div>
@@ -82,7 +93,7 @@ export default function AnimalProfilePage() {
                 activeTab === item.id ? 'text-[#1B4820]' : 'text-neutral-400'
               }`}
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className="w-5 h-5 flex-shrink-0" />
               <span className="text-[9px] font-bold uppercase tracking-widest">{item.label}</span>
             </button>
           ))}
