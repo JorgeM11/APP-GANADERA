@@ -46,8 +46,8 @@ export default function AnimalProfilePage() {
       </header>
 
       <div className="max-w-6xl mx-auto">
-        {/* NAVEGACIÓN DESKTOP (Pestañas fijas arriba) */}
-        <nav className="hidden md:flex items-center gap-8 border-b border-neutral-200 mb-6 px-8 sticky top-[72px] bg-[#F7F7F2] z-20 pt-2">
+        {/* NAVEGACIÓN DESKTOP (CENTRADAS) */}
+        <nav className="hidden md:flex items-center justify-center gap-8 border-b border-neutral-200 mb-6 px-8 sticky top-[72px] bg-[#F7F7F2] z-20 pt-2">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -62,7 +62,7 @@ export default function AnimalProfilePage() {
           ))}
         </nav>
 
-        {/* CONTENIDO DINÁMICO (Cambia totalmente según la pestaña) */}
+        {/* CONTENIDO DINÁMICO */}
         <div className="px-4">
           {activeTab === 'details' && <DetailsTab />}
           {activeTab === 'evolution' && <EvolutionTab />}

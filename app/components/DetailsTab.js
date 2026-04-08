@@ -50,8 +50,8 @@ export default function DetailsTab() {
             <h3 className="text-lg font-bold text-[#1B4820]">Genealogía</h3>
           </div>
           <div className="pl-4 border-l-2 border-neutral-100 space-y-4 text-sm">
-            <DataRow label="Padre (Semental)" value="Titan #99" />
-            <DataRow label="Madre (Vientre)" value="Luna #102" />
+            <DataRow label="Padre (Semental)" value="#99" />
+            <DataRow label="Madre (Vientre)" value="#102" />
           </div>
         </section>
 
