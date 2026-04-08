@@ -27,6 +27,7 @@ export default function InputField({
   error,
   registration,
   icon: Icon,
+  rightIcon: RightIcon,
   hint,
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -66,8 +67,14 @@ export default function InputField({
           }
           {...registration}
           className={`w-full bg-transparent outline-none text-on-surface font-sans text-base py-3.5 placeholder:text-outline-variant placeholder:font-normal placeholder:opacity-80 ${Icon ? "pl-12" : "pl-6"
-            } ${isPassword ? "pr-12" : "pr-6"}`}
+            } ${isPassword || RightIcon ? "pr-12" : "pr-6"}`}
         />
+
+        {RightIcon && !isPassword && (
+          <span className="absolute right-4 pointer-events-none text-on-surface-variant">
+           <RightIcon size={20} strokeWidth={1.75} />
+          </span>
+        )}
 
         {/* Toggle visibilidad de contraseña */}
         {isPassword && (
