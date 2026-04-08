@@ -61,7 +61,7 @@ export default function HealthTab() {
           />
         </div>
         <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.2em] mb-1">Registro Individual</p>
-        <h3 className="text-3xl font-black text-[#1B4820]">Vaca #204</h3>
+        <span className="text-3xl font-black text-[#1B4820]">#204</span>
       </div>
 
       {/* 2. Tarjeta de Peso Actual */}
