@@ -8,8 +8,13 @@ import {
   Ruler, 
   Info
 } from 'lucide-react';
+import Link from 'next/link';
+
+import { useParams } from 'next/navigation';
 
 export default function EvolutionTab() {
+  const params = useParams();
+  const animalId = params?.id || '204'; // Fallback if missing
   const events = [
     { 
       id: '1',
@@ -126,9 +131,9 @@ export default function EvolutionTab() {
         ))}
       </div>
 
-      <button className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1B4820] text-white p-4 rounded-full shadow-2xl z-50 transition-all active:scale-95">
+      <Link href={`/inventario/${animalId}/evento`} className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1B4820] text-white p-4 rounded-full shadow-2xl z-50 transition-all active:scale-95 cursor-pointer">
         <Plus className="w-7 h-7" strokeWidth={3} />
-      </button>
+      </Link>
 
     </div>
   );

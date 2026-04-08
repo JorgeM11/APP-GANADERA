@@ -13,6 +13,16 @@ import GenealogyTab from '../../components/GenealogyTab';
 export default function AnimalProfilePage() {
   const [activeTab, setActiveTab] = useState('details');
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setActiveTab(tab);
+      }
+    }
+  }, []);
+
   const navItems = [
     { id: 'details', label: 'Detalles', icon: List },
     { id: 'evolution', label: 'Evolución', icon: TrendingUp },
