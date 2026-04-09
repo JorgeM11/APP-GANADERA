@@ -41,6 +41,7 @@ export default function DetailsTab() {
             <DataRow label="Número" value="#482" />
             <DataRow label="Fecha de Nacimiento" value="12 de Octubre, 2020" />
             <DataRow label="Sexo" value="Macho" />
+             <DataRow label="Color" value="Rojo Suave" />
           </div>
         </section>
 

@@ -183,6 +183,7 @@ export default function NuevoAnimalPage() {
             placeholder="Seleccionar..."
             required
           />
+          <InputField label="Color" placeholder="Ej: Rojo Suave" />
         </StaticSection>
 
         {/* 3. ACORDEÓN: DATOS DE NACIMIENTO */}
