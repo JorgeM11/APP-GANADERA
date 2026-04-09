@@ -2,10 +2,19 @@
 
 import { use, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
-import { ArrowLeft, Calendar, Ruler, Camera, Save, X, ChevronDown, CheckCircle } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Calendar, 
+  Ruler, 
+  Camera, 
+  Save, 
+  X, 
+  ChevronDown, 
+  CheckCircle, 
+  MessageSquare 
+} from "lucide-react";
 
 export default function EventoDeVidaPage({ params }) {
   const router = useRouter();
@@ -18,7 +27,7 @@ export default function EventoDeVidaPage({ params }) {
   const [tipoEvento, setTipoEvento] = useState("Destete");
   const [eventoPersonalizado, setEventoPersonalizado] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tempMeses, setTempMeses] = useState("");
+  const [tempNombreEvento, setTempNombreEvento] = useState(""); 
 
   // Estados de carga y Toast
   const [isSaving, setIsSaving] = useState(false);
@@ -30,9 +39,13 @@ export default function EventoDeVidaPage({ params }) {
 
   // Opciones Dropdowns
   const tipoOpciones = ["Destete", "Peso a los 12 meses", "Peso a los 18 meses", "Otro"];
+  
   const largoOpciones = [
     { value: "1", label: "Corto (1)" },
-    { value: "5", label: "Largo (5)" }
+    { value: "2", label: "Moderado (2)" },
+    { value: "3", label: "Medio (3)" },
+    { value: "4", label: "Largo (4)" },
+    { value: "5", label: "Muy Largo (5)" }
   ];
 
   // Estado y Ref para Fotografía
@@ -44,7 +57,6 @@ export default function EventoDeVidaPage({ params }) {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
   } = useForm({
     defaultValues: {
       fechaEvento: "2023-10-25",
@@ -52,6 +64,7 @@ export default function EventoDeVidaPage({ params }) {
       pesoCria: "",
       circunferencia: "",
       largoViril: "1",
+      observaciones: "",
     },
   });
 
@@ -59,7 +72,6 @@ export default function EventoDeVidaPage({ params }) {
 
   // Validadores Numéricos
   const preventInvalidNumberKeys = (e) => {
-    // Evitar signos + - * / e E y caracteres inválidos
     if (['+', '-', 'e', 'E', '*', '/', '{', '}', 'ñ', 'Ñ'].includes(e.key) || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
     }
@@ -67,10 +79,10 @@ export default function EventoDeVidaPage({ params }) {
 
   const handleNumericInput = (e) => {
     let val = e.target.value;
-    val = val.replace(/[^0-9.]/g, ''); // Remover todo lo que no sea número o punto
+    val = val.replace(/[^0-9.]/g, ''); 
     const parts = val.split('.');
     if (parts.length > 2) {
-      val = parts[0] + '.' + parts.slice(1).join(''); // Prevenir mútiples puntos
+      val = parts[0] + '.' + parts.slice(1).join(''); 
     }
     e.target.value = val;
   };
@@ -89,7 +101,7 @@ export default function EventoDeVidaPage({ params }) {
 
   const getDisplayTitle = () => {
     if (tipoEvento === "Otro" && eventoPersonalizado) {
-      return `Peso en ${eventoPersonalizado} meses`;
+      return eventoPersonalizado;
     }
     return tipoEvento;
   };
@@ -106,8 +118,8 @@ export default function EventoDeVidaPage({ params }) {
   };
 
   const handleModalConfirm = () => {
-    if (tempMeses.trim()) {
-      setEventoPersonalizado(tempMeses);
+    if (tempNombreEvento.trim()) {
+      setEventoPersonalizado(tempNombreEvento);
       setTipoEvento("Otro");
     } else {
       setTipoEvento("Destete");
@@ -130,14 +142,10 @@ export default function EventoDeVidaPage({ params }) {
       tipoEvento: getDisplayTitle(),
       animalId,
     };
-    console.log("[Terra Form] Guardando Evento de Vida...", payload);
-
-    // Simulación de delay de red o guardado local
+    
     setTimeout(() => {
       setIsSaving(false);
       setShowToast(true);
-
-      // Desaparece toast y redirecciona
       setTimeout(() => {
         setShowToast(false);
         router.push(`/inventario/${animalId}?tab=evolution`);
@@ -150,7 +158,7 @@ export default function EventoDeVidaPage({ params }) {
   };
 
   return (
-    <main className="min-h-screen bg-[#F8F9F5] font-sans pb-36 relative">
+    <main className="min-h-screen bg-[#F8F9F5] font-sans pb-40 relative">
 
       {/* Toast Notification */}
       {showToast && (
@@ -160,7 +168,8 @@ export default function EventoDeVidaPage({ params }) {
         </div>
       )}
 
-      <header className="flex items-center justify-between px-5 pt-6 pb-4 sticky top-0 bg-[#F8F9F5]/90 backdrop-blur-md z-30">
+      {/* HEADER CORREGIDO: Cierra antes del form */}
+      <header className="flex items-center justify-between px-5 pt-6 pb-4 sticky top-0 bg-[#F8F9F5]/90 backdrop-blur-md z-30 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <button 
             type="button"
@@ -175,7 +184,8 @@ export default function EventoDeVidaPage({ params }) {
         </div>
       </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col px-5 max-w-2xl mx-auto space-y-6">
+      {/* FORMULARIO: Contenedor principal */}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col px-5 max-w-2xl mx-auto space-y-6 mt-6">
 
         {/* Hero Card */}
         <div className="relative w-full h-48 rounded-2xl overflow-hidden shadow-sm bg-black">
@@ -237,7 +247,6 @@ export default function EventoDeVidaPage({ params }) {
           </div>
 
           <div className="space-y-4">
-            {/* Fecha */}
             <div className="bg-white rounded-2xl p-4 flex flex-col shadow-sm border border-gray-100/50">
               <label className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-500 mb-3">
                 Fecha del Evento
@@ -252,25 +261,10 @@ export default function EventoDeVidaPage({ params }) {
               </div>
             </div>
 
-            {/* Inputs de Pesos con validación bloqueando teclado y ruleta */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white border-l-[6px] border-[#1A3621] rounded-2xl p-4 flex flex-col shadow-sm">
                 <label className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 mb-1">
-                  Peso Vaca (KG)
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0.0"
-                  onKeyDown={preventInvalidNumberKeys}
-                  className="text-2xl font-extrabold text-[#1A3621] outline-none w-full bg-transparent placeholder-gray-300"
-                  {...register("pesoVaca", { onChange: handleNumericInput })}
-                />
-              </div>
-
-              <div className="bg-white border-l-[6px] border-[#1A3621] rounded-2xl p-4 flex flex-col shadow-sm">
-                <label className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 mb-1">
-                  Peso Cría (KG)
+                  Peso Animal (KG)
                 </label>
                 <input
                   type="text"
@@ -279,6 +273,20 @@ export default function EventoDeVidaPage({ params }) {
                   onKeyDown={preventInvalidNumberKeys}
                   className="text-2xl font-extrabold text-[#1A3621] outline-none w-full bg-transparent placeholder-gray-300"
                   {...register("pesoCria", { onChange: handleNumericInput })}
+                />
+              </div>
+
+              <div className="bg-white border-l-[6px] border-[#1A3621] rounded-2xl p-4 flex flex-col shadow-sm">
+                <label className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 mb-1">
+                  Peso de la Madre (KG)
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.0"
+                  onKeyDown={preventInvalidNumberKeys}
+                  className="text-2xl font-extrabold text-[#1A3621] outline-none w-full bg-transparent placeholder-gray-300"
+                  {...register("pesoVaca", { onChange: handleNumericInput })}
                 />
               </div>
             </div>
@@ -307,7 +315,6 @@ export default function EventoDeVidaPage({ params }) {
               />
             </div>
 
-            {/* Dropdown Custom - Largo Viril */}
             <div className="custom-dropdown relative bg-white rounded-xl px-4 py-3 flex flex-col shadow-sm z-10">
               <label className="text-[0.60rem] font-bold uppercase tracking-widest text-gray-500 mb-1">
                 Largo Viril/Ombligo
@@ -334,7 +341,7 @@ export default function EventoDeVidaPage({ params }) {
                         setValue("largoViril", opcion.value);
                         setIsLargoOpen(false);
                       }}
-                      className="px-4 py-3 font-bold text-[15px] cursor-pointer hover:bg-gray-50 text-gray-700"
+                      className={`px-4 py-3 font-bold text-[15px] cursor-pointer hover:bg-gray-50 transition-colors ${selectedLargo === opcion.value ? "text-[#1A3621] bg-emerald-50/50" : "text-gray-700"}`}
                     >
                       {opcion.label}
                     </div>
@@ -345,10 +352,24 @@ export default function EventoDeVidaPage({ params }) {
           </div>
         </div>
 
+        {/* Observaciones */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col shadow-sm border border-gray-100/50">
+          <label className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-500 mb-2 pl-1 flex items-center gap-2">
+            <MessageSquare size={14} className="text-[#1A3621]" />
+            Observaciones
+          </label>
+          <textarea
+            placeholder="Añade notas o detalles relevantes del pesaje..."
+            rows={3}
+            className="font-bold text-gray-800 text-base outline-none w-full bg-transparent resize-none placeholder-gray-300 min-h-[80px]"
+            {...register("observaciones")}
+          />
+        </div>
+
         {/* Toma de Fotografía */}
         <div 
           onClick={() => fileInputRef.current?.click()}
-          className="relative h-32 mt-2 border-2 border-dashed border-gray-300 rounded-[2rem] flex flex-col items-center justify-center bg-[#EAECE4]/30 cursor-pointer active:scale-95 transition-transform hover:bg-[#EAECE4]/50 overflow-hidden"
+          className="relative h-32 border-2 border-dashed border-gray-300 rounded-[2rem] flex flex-col items-center justify-center bg-[#EAECE4]/30 cursor-pointer active:scale-95 transition-transform hover:bg-[#EAECE4]/50 overflow-hidden"
         >
           {photoPreview ? (
             <Image src={photoPreview} alt="Preview" fill className="object-cover" />
@@ -372,7 +393,7 @@ export default function EventoDeVidaPage({ params }) {
           />
         </div>
 
-        {/* Sticky Footer - Botones Píldora Horizontal */}
+        {/* Sticky Footer Corregido */}
         <div className="fixed bottom-0 left-0 w-full bg-gradient-to-t from-[#F8F9F5] via-[#F8F9F5] to-transparent pt-12 pb-8 px-5 z-40">
           <div className="max-w-md mx-auto w-full bg-[#F8F9F5] rounded-[2rem] p-3 shadow-[0_-15px_30px_-5px_rgba(0,0,0,0.06)] border border-white/60">
             <div className="flex gap-3">
@@ -403,7 +424,6 @@ export default function EventoDeVidaPage({ params }) {
             </div>
           </div>
         </div>
-
       </form>
 
       {/* Modal - "Otro" Evento */}
@@ -411,19 +431,19 @@ export default function EventoDeVidaPage({ params }) {
         <div className="fixed inset-0 z-50 bg-black/60 flex flex-col justify-end">
           <div className="bg-white w-full rounded-t-3xl p-6 pb-safe flex flex-col shadow-2xl animate-in slide-in-from-bottom-8 duration-300">
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-            <h2 className="text-xl font-bold text-gray-800 mb-6">¿Peso a los cuántos meses?</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Nombre del Evento</h2>
+            <p className="text-xs text-gray-400 mb-6">Ingresa el nombre del pesaje o evento especial.</p>
             <input
               type="text"
-              inputMode="numeric"
-              onKeyDown={preventInvalidNumberKeys}
-              onChange={(e) => setTempMeses(e.target.value.replace(/[^0-9]/g, ''))}
-              value={tempMeses}
-              placeholder="Ej. 6"
-              className="w-full mt-4 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-xl font-bold outline-none "
+              onChange={(e) => setTempNombreEvento(e.target.value)}
+              value={tempNombreEvento}
+              placeholder="Ej. Pesaje de Verano"
+              className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 text-xl font-bold outline-none focus:border-[#1A3621] transition-colors"
               autoFocus
             />
             <div className="flex gap-3 mt-8">
               <button
+                type="button"
                 onClick={() => {
                   setIsModalOpen(false);
                   setTipoEvento("Destete");
@@ -433,6 +453,7 @@ export default function EventoDeVidaPage({ params }) {
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleModalConfirm}
                 className="flex-1 py-4 font-bold text-white bg-[#1A3621] rounded-full shadow-lg"
               >
