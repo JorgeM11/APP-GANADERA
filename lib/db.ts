@@ -20,7 +20,14 @@ export interface Animal {
     number: string;
     birth_date?: string | null;
     sex?: 'Macho' | 'Hembra' | null;
-    photo_path?: string | null;
+    
+    // --- NUEVOS CAMPOS FASE 1 ---
+    status?: 'Activo' | 'Inactivo';
+    inactivity_reason?: string | null;
+    photo_path?: string | null; // URL de Supabase (Online)
+    photo_blob?: Blob | null;   // Archivo binario para uso (Offline)
+    // -----------------------------
+
     mother_id?: string | null;
     father_id?: string | null;
     birth_weight_kg?: number | null;
@@ -91,6 +98,11 @@ export interface GrowthEvent {
     navel_length?: string | null;
     observations?: string | null;
 
+    // --- NUEVOS CAMPOS FASE 1 ---
+    photo_path?: string | null; // URL de Supabase (Online)
+    photo_blob?: Blob | null;   // Archivo binario para uso (Offline)
+    // -----------------------------
+
     created_at: string;
     updated_at: string;
     deleted_at?: string | null;
@@ -113,8 +125,7 @@ export class GanaderaDB extends Dexie {
         super('GanaderaDB');
 
         // IMPORTANTE: Aquí NO van todas las columnas. 
-        // Solo van: la llave primaria (id), y los campos por los que vamos a filtrar (foreign keys y fechas).
-        // El símbolo '&' significa que es único.
+        // Solo van: la llave primaria (id), y los campos por los que vamos a filtrar.
         this.version(1).stores({
             animals: 'id, user_id, number, mother_id, father_id, origin_service_id, updated_at, deleted_at',
             services: 'id, user_id, mother_id, father_id, service_date, updated_at, deleted_at',
@@ -128,14 +139,27 @@ export class GanaderaDB extends Dexie {
             sync_queue: '++id, table_name, status, created_at'
         });
 
-        // Versión 3: Indexamos 'sex' para permitir búsquedas reactivas en la genealogía
+        // Versión 3: Indexamos 'sex'
         this.version(3).stores({
             animals: 'id, user_id, number, sex, mother_id, father_id, origin_service_id, updated_at, deleted_at'
         });
 
-        // Versión 4: Indexamos campos de peso para ordenamiento y filtrado rápido
+        // Versión 4: Indexamos campos de peso
         this.version(4).stores({
             animals: 'id, user_id, number, sex, last_weight_kg, last_weight_date, mother_id, father_id, updated_at, deleted_at'
+        });
+
+        // --- FASE 1: NUEVA VERSIÓN 5 ---
+        // Indexamos 'status' por si en el futuro queremos filtrar "Mostrar solo animales activos"
+        this.version(5).stores({
+            animals: 'id, user_id, number, status, sex, last_weight_kg, last_weight_date, mother_id, father_id, updated_at, deleted_at'
+        }).upgrade(tx => {
+            // Migración: Asignar 'Activo' a los animales que ya estaban en el teléfono antes de esta actualización
+            return tx.table('animals').toCollection().modify(animal => {
+                if (!animal.status) {
+                    animal.status = 'Activo';
+                }
+            });
         });
     }
 }

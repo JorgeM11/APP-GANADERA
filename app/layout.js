@@ -1,4 +1,5 @@
 import "./globals.css";
+import SyncManager from '@/components/providers/SyncManager'; // <-- Agregamos la importación
 
 export const metadata = {
   title: "Terra Form — Gestión Ganadera de Precisión",
@@ -21,7 +22,12 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {/* El SyncManager no ocupa espacio visual, pero vigilará el internet en toda la app */}
+        <SyncManager /> 
+        
+        {children}
+      </body>
     </html>
   );
 }

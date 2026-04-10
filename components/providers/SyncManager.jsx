@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useSyncStore } from '@/store/syncStore';
-import { processSyncQueue } from '@/lib/syncUtils';
+import { runFullSync } from '@/lib/syncUtils'; // <-- CAMBIAMOS LA IMPORTACIÓN
 import { db } from '@/lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 
@@ -25,31 +25,37 @@ export default function SyncManager() {
     setPendingItemsCount(pendingCount);
     
     // Si recuperamos conexión y hay items pendientes, intentar procesar
-    if (navigator.onLine && pendingCount > 0) {
-      processSyncQueue();
+    if (typeof navigator !== 'undefined' && navigator.onLine && pendingCount > 0) {
+      runFullSync(); // <-- AHORA HACE PUSH Y PULL
     }
   }, [pendingCount, setPendingItemsCount]);
 
   // 3. Event Listeners de Conectividad
   useEffect(() => {
     const handleOnline = () => {
-      console.log('[Sync Engine] Online');
+      console.log('[Sync Engine] Online recuperado. Iniciando Sincronización Bidireccional...');
       setOnline(true);
-      processSyncQueue();
+      runFullSync(); // <-- AHORA HACE PUSH Y PULL
     };
     
     const handleOffline = () => {
-      console.log('[Sync Engine] Offline');
+      console.log('[Sync Engine] Offline activo.');
       setOnline(false);
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Polling de seguridad cada 5 minutos
+    // 4. Arranque en frío: Sincronizar al abrir la app si hay internet
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      runFullSync();
+    }
+
+    // 5. Polling de seguridad cada 5 minutos
     const interval = setInterval(() => {
       if (navigator.onLine) {
-        processSyncQueue();
+        console.log('[Sync Engine] Polling automático (5min)...');
+        runFullSync(); // <-- AHORA HACE PUSH Y PULL
       }
     }, 1000 * 60 * 5);
 
