@@ -1,22 +1,48 @@
 import React from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Stethoscope } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
 
 export default function TactosTab({ animalId }) {
-  // Sacamos el ID para usar en el link. Puede fallar si animalId es "#482" y lo usamos directo en URL,
-  // idealmente el animalId debería ser un string puro UUID u optimizado, 
-  // pero usaremos el mismo animalId asumiendo que lo extrae el page principal.
-  
-  // Limpiamos animalId por si acaso viene con "#" en esta UI temporal 
+  const checks = useLiveQuery(
+    () => db.pregnancy_checks
+      .where('animal_id').equals(animalId)
+      .reverse()
+      .sortBy('check_date')
+      .then(res => res.filter(c => !c.deleted_at)),
+    [animalId]
+  );
+
   const cleanAnimalId = animalId.toString().replace('#', '');
 
   return (
-    <div className="relative min-h-[50vh]">
-      <div className="bg-white p-5 rounded-2xl border border-neutral-200">
-        <span className="text-xs uppercase tracking-widest text-[#1B4820] font-bold">15 de Abril, 2023</span>
-        <h3 className="font-bold text-gray-800 text-lg mt-1">Diagnóstico: Preñada</h3>
-        <p className="text-sm text-gray-500 mt-2">Gestación de aproximadamente 45 días confirmada vía ecografía para {animalId}.</p>
-      </div>
+    <div className="relative min-h-[50vh] space-y-4">
+      {checks && checks.length > 0 ? (
+        checks.map((check) => (
+          <div key={check.id} className="bg-white p-5 rounded-2xl border border-neutral-200">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs uppercase tracking-widest text-[#1B4820] font-bold">
+                {new Date(check.check_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+              <div className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                check.result === 'Preñada' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+              }`}>
+                {check.result}
+              </div>
+            </div>
+            <h3 className="font-bold text-gray-800 text-lg">Diagnóstico: {check.result}</h3>
+            {check.observations && (
+              <p className="text-sm text-gray-500 mt-2 italic">"{check.observations}"</p>
+            )}
+          </div>
+        ))
+      ) : (
+        <div className="bg-white/50 p-10 rounded-2xl border border-dashed border-neutral-300 text-center">
+          <Stethoscope className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
+          <p className="text-sm text-neutral-400 font-bold uppercase tracking-widest">Sin tactos registrados</p>
+        </div>
+      )}
 
       {/* Floating Action Button (FAB) */}
       <Link 

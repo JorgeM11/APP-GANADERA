@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { addToSyncQueue } from '@/lib/syncUtils';
 import { compressImage, uploadImageToSupabase } from '@/lib/imageUtils';
 import GenealogySelector from './GenealogySelector';
+import CustomSelect from '@/components/ui/CustomSelect';
 import { useRouter } from 'next/navigation';
 
 // Esquema de validación con Zod
@@ -102,6 +103,23 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   const toggleAccordion = (section) => {
     setActiveAccordions(prev => ({ ...prev, [section]: !prev[section] }));
   };
+
+  // --- OPCIONES PARA SELECTORES PERSONALIZADOS ---
+  const originServiceId = watch('origin_service_id');
+
+  const motherServicesOptions = useMemo(() => {
+    if (!motherServices) return [];
+    return motherServices.map(s => ({
+      value: s.id,
+      label: `${new Date(s.service_date).toLocaleDateString()} - ${s.type_conception}`
+    }));
+  }, [motherServices]);
+
+  const serviceTypeOptions = [
+    { value: 'Monta Natural', label: 'Monta Natural' },
+    { value: 'Inseminación Artificial', label: 'Inseminación Artificial' },
+    { value: 'Transferencia de Embriones', label: 'Transferencia de Embriones' },
+  ];
 
   const handleImageCapture = async (e, type) => {
     const file = e.target.files[0];
@@ -328,14 +346,12 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
                     
                     <input type="date" value={quickServiceData.date} onChange={e => setQuickServiceData(d => ({...d, date: e.target.value}))} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
                     
-                    <div className="relative">
-                      <select value={quickServiceData.type} onChange={e => setQuickServiceData(d => ({...d, type: e.target.value}))} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none appearance-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all">
-                        <option>Monta Natural</option>
-                        <option>Inseminación Artificial</option>
-                        <option>Transferencia de Embriones</option>
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-neutral-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <CustomSelect 
+                      value={quickServiceData.type}
+                      onChange={val => setQuickServiceData(d => ({...d, type: val}))}
+                      options={serviceTypeOptions}
+                      bgClass="bg-neutral-50"
+                    />
 
                     <div className="flex gap-3 pt-2">
                       <button type="button" disabled={isSavingQuickService} onClick={() => setShowQuickService(false)} className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold py-3.5 rounded-xl transition-colors">Cancelar</button>
@@ -351,15 +367,12 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
                         <p className="text-xs text-neutral-500 mb-2 font-medium">Esta madre no tiene servicios registrados.</p>
                       </div>
                     ) : (
-                      <div className="relative">
-                        <select {...register('origin_service_id')} className="w-full bg-white rounded-2xl px-4 py-4 text-neutral-800 border border-neutral-200 outline-none font-medium appearance-none shadow-sm focus:ring-2 focus:ring-[#1B4820]/20 transition-all">
-                          <option value="">Selecciona el servicio origen...</option>
-                          {motherServices.map(s => (
-                            <option key={s.id} value={s.id}>{s.service_date} - {s.type_conception}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-5 h-5 text-neutral-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
+                      <CustomSelect 
+                        value={originServiceId}
+                        onChange={val => setValue('origin_service_id', val)}
+                        options={motherServicesOptions}
+                        placeholder="Selecciona el servicio origen..."
+                      />
                     )}
                     
                     <button type="button" onClick={() => setShowQuickService(true)} className="w-full flex items-center justify-center gap-2 bg-neutral-50 border border-dashed border-neutral-300 hover:border-[#1B4820] hover:text-[#1B4820] hover:bg-emerald-50 text-neutral-600 font-bold py-3.5 rounded-xl transition-all text-xs">

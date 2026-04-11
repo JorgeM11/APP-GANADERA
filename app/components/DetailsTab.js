@@ -1,71 +1,110 @@
 import React from 'react';
-import { IdCard, Network, FileText, Pencil } from 'lucide-react';
+import { IdCard, Network, FileText, Pencil, CircleAlert } from 'lucide-react';
+import AnimalImage from '@/components/inventario/AnimalImage';
+import { calculateAge, formatWeight } from '@/lib/dateUtils';
 
-export default function DetailsTab() {
+export default function DetailsTab({ animal }) {
+  if (!animal) return null;
+
   return (
     <div className="max-w-6xl mx-auto md:grid md:grid-cols-12 md:gap-8 md:items-start">
-      
+
       {/* COLUMNA 1: Perfil Rápido */}
       <div className="md:col-span-5 md:sticky md:top-32 space-y-5">
-        <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-sm">
-          <img src="https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" />
+        <div className="w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-sm border border-neutral-100 bg-neutral-200">
+          <AnimalImage
+            photoPath={animal.photo_path}
+            photoBlob={animal.photo_blob}
+            alt={`#${animal.number}`}
+            className="w-full h-full"
+          />
         </div>
-        
-        <span className="text-3xl font-black text-[#1B4820] tracking-tight block">#482</span>
-        
+
+        <div className="flex items-center justify-between">
+          <span className="text-3xl font-black text-[#1B4820] tracking-tight block">#{animal.number}</span>
+
+          {/* Badge de Estatus Dinámico */}
+          <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${animal.status === 'Inactivo' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'
+            }`}>
+            {animal.status || 'Activo'}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-2xl shadow-sm text-center border border-neutral-100">
-            <span className="text-[10px] uppercase font-bold text-neutral-500 mb-1 block tracking-widest">Peso</span>
-            <span className="text-2xl font-black text-[#1B4820]">842 kg</span>
+            <span className="text-[10px] uppercase font-bold text-neutral-500 mb-1 block tracking-widest">Peso Actual</span>
+            <span className="text-2xl font-black text-[#1B4820]">{formatWeight(animal.last_weight_kg)}</span>
           </div>
           <div className="bg-white p-4 rounded-2xl shadow-sm text-center border border-neutral-100">
             <span className="text-[10px] uppercase font-bold text-neutral-500 mb-1 block tracking-widest">Edad</span>
-            <span className="text-2xl font-black text-[#1B4820]">3.5 Años</span>
+            <span className="text-lg font-black text-[#1B4820]">{calculateAge(animal.birth_date)}</span>
           </div>
         </div>
 
-        {/* CORRECCIÓN: Botón Editar en Desktop debajo de los pesos */}
-        <button className="hidden md:flex w-full items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm transition-transform hover:scale-[0.99]">
+        {/* Botón Editar en Desktop */}
+        <button className="hidden md:flex w-full items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm transition-transform hover:scale-[0.99] cursor-pointer">
           <Pencil className="w-5 h-5" /> EDITAR
         </button>
       </div>
 
       {/* COLUMNA 2: Información Detallada */}
       <div className="md:col-span-7 space-y-4 mt-6 md:mt-0">
+
+        {/* Identificación Detallada */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-neutral-100">
           <div className="flex items-center gap-2 mb-5">
             <IdCard className="w-5 h-5 text-[#4F663F]" />
             <h3 className="text-lg font-bold text-[#1B4820]">Identificación Detallada</h3>
           </div>
-          <div className="space-y-4 text-sm">
-            <DataRow label="Número" value="#482" />
-            <DataRow label="Fecha de Nacimiento" value="12 de Octubre, 2020" />
-            <DataRow label="Sexo" value="Macho" />
-             <DataRow label="Color" value="Rojo Suave" />
+          <div className="grid grid-cols-2 gap-y-4 text-sm">
+            <DataRow label="Número / ID" value={`#${animal.number}`} />
+            <DataRow label="Fecha Nacimiento" value={animal.birth_date ? new Date(animal.birth_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : '---'} />
+            <DataRow label="Sexo" value={animal.sex || '---'} />
+            <DataRow label="Color / Pelaje" value={animal.color || '---'} />
+            <DataRow label="Estado Actual" value={animal.status || 'Activo'} isStatus={true} statusType={animal.status} />
           </div>
         </section>
 
+        {/* Genealogía (ID de Padres) */}
         <section className="bg-white p-5 rounded-3xl shadow-sm border border-neutral-100">
           <div className="flex items-center gap-2 mb-5">
             <Network className="w-5 h-5 text-[#4F663F]" />
-            <h3 className="text-lg font-bold text-[#1B4820]">Genealogía</h3>
+            <h3 className="text-lg font-bold text-[#1B4820]">Genealogía Directa</h3>
           </div>
-          <div className="pl-4 border-l-2 border-neutral-100 space-y-4 text-sm">
-            <DataRow label="Padre (Semental)" value="#99" />
-            <DataRow label="Madre (Vientre)" value="#102" />
+          <div className="pl-4 border-l-2 border-neutral-100 grid grid-cols-2 gap-y-4 text-sm">
+            <DataRow label="Padre (Semental)" value={animal.father_id ? `#${animal.father_id.split('-')[0]}` : 'Desconocido'} />
+            <DataRow label="Madre (Vientre)" value={animal.mother_id ? `#${animal.mother_id.split('-')[0]}` : 'Desconocida'} />
           </div>
         </section>
 
-        <section className="bg-[#EEF2EA] p-5 rounded-3xl border border-transparent">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-5 h-5 text-[#4F663F]" />
-            <h3 className="text-lg font-bold text-[#1B4820]">Observaciones del Ganadero</h3>
-          </div>
-          <p className="text-sm text-[#4F663F] leading-relaxed font-medium">Ejemplar con excelente temperamento. Ha mostrado una ganancia de peso superior al promedio del lote durante la última temporada de lluvias.Ejemplar con excelente temperamento. Ha mostrado una ganancia de peso superior al promedio del lote durante la última temporada de lluvias.</p>
-        </section>
+        {/* Observaciones */}
+        {animal.observations && (
+          <section className="bg-[#EEF2EA] p-5 rounded-3xl border border-transparent">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-5 h-5 text-[#4F663F]" />
+              <h3 className="text-lg font-bold text-[#1B4820]">Observaciones del Ganadero</h3>
+            </div>
+            <p className="text-sm text-[#4F663F] leading-relaxed font-medium">
+              {animal.observations}
+            </p>
+          </section>
+        )}
 
-        {/* Botón Editar para MÓVIL (al final del scroll) */}
-        <button className="md:hidden w-full flex items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm mt-6 mb-4">
+        {/* Razón de Inactividad (Solo si aplica) */}
+        {animal.status === 'Inactivo' && (
+          <section className="bg-red-50 p-5 rounded-3xl border border-red-100 animate-in fade-in slide-in-from-top-2 duration-500">
+            <div className="flex items-center gap-2 mb-3 text-red-700">
+              <CircleAlert className="w-5 h-5" />
+              <h3 className="text-lg font-bold">Razón de Inactividad</h3>
+            </div>
+            <p className="text-sm text-red-600 leading-relaxed font-bold">
+              {animal.inactivity_reason || 'No se especificó una razón para la baja del animal.'}
+            </p>
+          </section>
+        )}
+
+        {/* Botón Editar para MÓVIL */}
+        <button className="md:hidden w-full flex items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm mt-6 mb-4 cursor-pointer">
           <Pencil className="w-5 h-5" /> EDITAR
         </button>
       </div>
@@ -73,11 +112,17 @@ export default function DetailsTab() {
   );
 }
 
-function DataRow({ label, value }) {
+function DataRow({ label, value, isStatus = false, statusType = 'Activo' }) {
   return (
     <div>
       <p className="text-[10px] uppercase font-bold text-neutral-400 tracking-widest">{label}</p>
-      <p className="font-bold text-neutral-800">{value}</p>
+      {isStatus ? (
+        <p className={`font-black uppercase text-xs mt-1 ${statusType === 'Inactivo' ? 'text-red-600' : 'text-emerald-700'}`}>
+          {value}
+        </p>
+      ) : (
+        <p className="font-bold text-neutral-800 text-[15px]">{value}</p>
+      )}
     </div>
   );
 }
