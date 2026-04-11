@@ -16,12 +16,11 @@ const actionOptions = [
 ];
 
 const SearchInput = ({ isMobile = false, searchTerm, setSearchTerm }) => (
-  <div className={`relative flex items-center ${
-    isMobile 
-      ? 'md:hidden bg-white mt-4 w-full border-neutral-300' 
+  <div className={`relative flex items-center ${isMobile
+      ? 'md:hidden bg-white mt-4 w-full border-neutral-300'
       : 'hidden md:flex bg-white md:w-full md:max-w-md border-neutral-300 shadow-sm'
     } rounded-2xl py-2 px-4 border focus-within:border-[#1B4820] transition-all`}>
-    
+
     <Search className="w-5 h-5 text-neutral-600 mr-2 shrink-0" />
     <input
       type="text"
@@ -53,20 +52,20 @@ export default function InventarioPage() {
   const filteredAnimals = useMemo(() => {
     if (!allAnimals) return [];
     if (!searchTerm) return allAnimals;
-    
+
     const term = searchTerm.toLowerCase();
-    return allAnimals.filter(a => 
-      a.number.toLowerCase().includes(term) || 
+    return allAnimals.filter(a =>
+      a.number.toLowerCase().includes(term) ||
       a.id.toLowerCase().includes(term)
     );
   }, [allAnimals, searchTerm]);
 
   return (
     <main className="min-h-screen bg-[#F0F2EB] font-sans pb-28 relative">
-      
+
       <AnimatePresence>
         {isFabOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -97,36 +96,32 @@ export default function InventarioPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-5 md:mt-8 relative z-0">
-        <AnimatePresence mode="popLayout">
-          {filteredAnimals.length > 0 ? (
-            <motion.div 
-              layout
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
-            >
+        {filteredAnimals.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+            <AnimatePresence mode="popLayout">
               {filteredAnimals.map((animal) => (
-                <Link key={animal.id} href={`/inventario/${animal.id}`}>
-                  <motion.article 
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col h-full cursor-pointer group border border-neutral-200"
-                  >
+                <motion.article
+                  key={animal.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                  className="bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col cursor-pointer group border border-neutral-200"
+                >
+                  <Link href={`/inventario/${animal.id}`} className="flex flex-col h-full">
                     {/* ZONA DE IMAGEN */}
                     <div className="relative aspect-square w-full bg-[#E5E7EB] overflow-hidden">
-                      <AnimalImage 
-                        photoPath={animal.photo_path} 
-                        photoBlob={animal.photo_blob} 
-                        alt={`#${animal.number}`} 
-                        className="w-full h-full group-hover:scale-105 transition-transform duration-500 opacity-100" 
+                      <AnimalImage
+                        photoPath={animal.photo_path}
+                        photoBlob={animal.photo_blob}
+                        alt={`#${animal.number}`}
+                        className="w-full h-full group-hover:scale-105 transition-transform duration-500 opacity-100"
                       />
-                      
+
                       {/* PILL DE STATUS (Sólido y Visible) */}
-                      <div className={`absolute top-3 right-3 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg ${
-                        animal.status === 'Inactivo' 
-                          ? 'bg-red-600 text-white' 
+                      <div className={`absolute top-3 right-3 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg ${animal.status === 'Inactivo'
+                          ? 'bg-red-600 text-white'
                           : 'bg-emerald-600 text-white'
-                      }`}>
+                        }`}>
                         {animal.status === 'Inactivo' ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                         <span className="text-[9px] font-black uppercase tracking-widest">{animal.status || 'Activo'}</span>
                       </div>
@@ -136,39 +131,38 @@ export default function InventarioPage() {
                     <div className="px-5 pt-4 pb-6 flex flex-col justify-between flex-1 gap-1">
                       <div>
                         {/* BADGE DE SEXO (Justo arriba del nombre) */}
-                        <div className={`inline-block px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white mb-2 ${
-                          animal.sex === 'Hembra' ? 'bg-pink-600' : 'bg-blue-700'
-                        }`}>
+                        <div className={`inline-block px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white mb-2 ${animal.sex === 'Hembra' ? 'bg-pink-600' : 'bg-blue-700'
+                          }`}>
                           {animal.sex}
                         </div>
-                        
+
                         <h2 className="text-2xl font-black text-black leading-tight mb-1">#{animal.number}</h2>
                         <p className="text-xs text-neutral-700 font-bold uppercase tracking-wider">{calculateAge(animal.birth_date)}</p>
                       </div>
 
                       {/* PESO (Sólido) */}
                       <div className="flex items-center text-black mt-4 bg-neutral-100 border border-neutral-200 w-fit px-3 py-2 rounded-xl">
-                        <Scale className="w-4 h-4 mr-2 text-[#1B4820]" strokeWidth={3}/>
+                        <Scale className="w-4 h-4 mr-2 text-[#1B4820]" strokeWidth={3} />
                         <span className="text-sm font-black tracking-tight">{formatWeight(animal.last_weight_kg)}</span>
                       </div>
                     </div>
-                  </motion.article>
-                </Link>
+                  </Link>
+                </motion.article>
               ))}
-            </motion.div>
-          ) : (
-            <div className="text-center py-20">
-              <p className="text-lg font-black text-neutral-400 uppercase tracking-widest">Sin resultados</p>
-            </div>
-          )}
-        </AnimatePresence>
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <p className="text-lg font-black text-neutral-400 uppercase tracking-widest">Sin resultados</p>
+          </div>
+        )}
       </div>
 
       {/* FAB (Botón de Acción) */}
       <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3">
         <AnimatePresence>
           {isFabOpen && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.8 }}
@@ -177,7 +171,7 @@ export default function InventarioPage() {
               {actionOptions.map((option, index) => {
                 const Icon = option.icon;
                 return (
-                  <Link 
+                  <Link
                     key={index}
                     href={option.href}
                     className="flex items-center gap-3 bg-white rounded-full py-3.5 px-6 shadow-2xl border-2 border-[#1B4820]/10 group hover:bg-[#1B4820] transition-all cursor-pointer"
@@ -191,9 +185,9 @@ export default function InventarioPage() {
           )}
         </AnimatePresence>
 
-        <button 
+        <button
           onClick={() => setIsFabOpen(!isFabOpen)}
-          className={`bg-[#1B4820] p-4 rounded-full text-white shadow-2xl transform transition-transform duration-300 hover:scale-110 active:scale-95 ${isFabOpen ? 'rotate-180 bg-black' : ''}`}
+          className={`bg-[#1B4820] p-4 rounded-full text-white shadow-2xl transform transition-transform duration-300 cursor-pointer hover:scale-110 active:scale-95 ${isFabOpen ? 'rotate-180 bg-black' : ''}`}
         >
           {isFabOpen ? <X className="w-8 h-8" strokeWidth={3} /> : <Plus className="w-8 h-8" strokeWidth={3} />}
         </button>
