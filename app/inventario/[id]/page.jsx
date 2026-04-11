@@ -11,11 +11,14 @@ import EvolutionTab from '../../components/EvolutionTab';
 import HealthTab from '../../components/HealthTab';
 import GenealogyTab from '../../components/GenealogyTab';
 import ReproductionTab from '../../components/ReproductionTab';
+import BottomSheet from '@/components/ui/BottomSheet';
+import AnimalForm from '@/components/inventario/AnimalForm';
 
 export default function AnimalProfilePage({ params }) {
   const resolvedParams = use(params);
   const animalId = resolvedParams.id;
   const [activeTab, setActiveTab] = useState('details');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Consulta reactiva a Dexie
   const animal = useLiveQuery(() => db.animals.get(animalId), [animalId]);
@@ -99,7 +102,7 @@ export default function AnimalProfilePage({ params }) {
 
         {/* CONTENIDO DINÁMICO */}
         <div className="px-4">
-          {activeTab === 'details' && <DetailsTab animal={animal} />}
+          {activeTab === 'details' && <DetailsTab animal={animal} onEdit={() => setIsEditModalOpen(true)} />}
           {activeTab === 'evolution' && <EvolutionTab animal={animal} />}
           {activeTab === 'health' && <HealthTab animal={animal} />}
           {activeTab === 'reproduction' && <ReproductionTab animalId={animal.id} />}
@@ -123,6 +126,21 @@ export default function AnimalProfilePage({ params }) {
           ))}
         </div>
       </nav>
+
+      {/* MODAL DE EDICIÓN */}
+      <BottomSheet
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Editar Animal"
+        description={`Actualiza la información de #${animal.number}`}
+      >
+        <AnimalForm 
+          isModal
+          initialValues={animal}
+          onCancel={() => setIsEditModalOpen(false)}
+          onSubmitSuccess={() => setIsEditModalOpen(false)}
+        />
+      </BottomSheet>
     </main>
   );
 }

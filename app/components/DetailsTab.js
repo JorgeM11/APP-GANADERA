@@ -3,7 +3,7 @@ import { IdCard, Network, FileText, Pencil, CircleAlert } from 'lucide-react';
 import AnimalImage from '@/components/inventario/AnimalImage';
 import { calculateAge, formatWeight } from '@/lib/dateUtils';
 
-export default function DetailsTab({ animal }) {
+export default function DetailsTab({ animal, onEdit }) {
   if (!animal) return null;
 
   return (
@@ -42,7 +42,10 @@ export default function DetailsTab({ animal }) {
         </div>
 
         {/* Botón Editar en Desktop */}
-        <button className="hidden md:flex w-full items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm transition-transform hover:scale-[0.99] cursor-pointer">
+        <button 
+          onClick={onEdit}
+          className="hidden md:flex w-full items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm transition-transform hover:scale-[0.99] cursor-pointer"
+        >
           <Pencil className="w-5 h-5" /> EDITAR
         </button>
       </div>
@@ -104,7 +107,10 @@ export default function DetailsTab({ animal }) {
         )}
 
         {/* Botón Editar para MÓVIL */}
-        <button className="md:hidden w-full flex items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm mt-6 mb-4 cursor-pointer">
+        <button 
+          onClick={onEdit}
+          className="md:hidden w-full flex items-center justify-center gap-2 bg-[#FBE3C5] text-[#8C6746] font-bold py-4 rounded-2xl shadow-sm mt-6 mb-4 cursor-pointer"
+        >
           <Pencil className="w-5 h-5" /> EDITAR
         </button>
       </div>
