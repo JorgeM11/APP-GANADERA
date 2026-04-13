@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   TrendingUp, 
   Plus, 
@@ -12,9 +12,12 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { formatWeight } from '@/lib/dateUtils';
 import AnimalImage from '@/components/inventario/AnimalImage';
+import BottomSheet from '@/components/ui/BottomSheet';
+import EventForm from '@/components/inventario/EventForm';
 
 export default function EvolutionTab({ animal }) {
   const animalId = animal?.id;
+  const [editingEvent, setEditingEvent] = useState(null);
   
   // Consulta reactiva a los eventos de crecimiento
   const events = useLiveQuery(
@@ -49,7 +52,10 @@ export default function EvolutionTab({ animal }) {
                 i === 0 ? 'bg-[#1B4820]' : 'bg-neutral-300'
               }`} />
 
-              <article className="flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-sm border border-neutral-100 group">
+              <article 
+                className="flex flex-col bg-white rounded-[2rem] overflow-hidden shadow-sm border border-neutral-100 group cursor-pointer active:scale-[0.98] transition-all"
+                onClick={() => setEditingEvent(event)}
+              >
                 
                 {/* IMAGEN DEL EVENTO */}
                 <div className="relative h-48 md:h-80 w-full overflow-hidden bg-neutral-100">
@@ -119,6 +125,23 @@ export default function EvolutionTab({ animal }) {
       <Link href={`/inventario/${animalId}/evento`} className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1B4820] text-white p-4 rounded-full shadow-2xl z-50 transition-all active:scale-95 cursor-pointer">
         <Plus className="w-7 h-7" strokeWidth={3} />
       </Link>
+
+      {/* MODAL DE EDICIÓN */}
+      <BottomSheet
+        isOpen={!!editingEvent}
+        onClose={() => setEditingEvent(null)}
+        title="Editar Evento"
+        description={`Modifica los detalles del registro de ${editingEvent?.event_type}`}
+      >
+        <EventForm 
+          animal={animal}
+          initialValues={editingEvent}
+          existingEvents={events || []}
+          onSubmitSuccess={() => setEditingEvent(null)}
+          onCancel={() => setEditingEvent(null)}
+          isModal
+        />
+      </BottomSheet>
 
     </div>
   );
