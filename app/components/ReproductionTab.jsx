@@ -6,8 +6,9 @@ import PartosTab from './reproduction/PartosTab';
 import TactosTab from './reproduction/TactosTab';
 import ServiciosTab from './reproduction/ServiciosTab';
 
-export default function ReproductionTab({ animalId }) {
+export default function ReproductionTab({ animal }) {
   const [activeSubTab, setActiveSubTab] = useState('partos');
+  const animalId = animal?.id;
 
   const subTabs = [
     { id: 'partos', label: 'Partos', icon: Baby },
@@ -39,8 +40,8 @@ export default function ReproductionTab({ animalId }) {
       {/* Vistas */}
       <div className="space-y-4">
         {activeSubTab === 'partos' && <PartosTab animalId={animalId} />}
-        {activeSubTab === 'tactos' && <TactosTab animalId={animalId} />}
-        {activeSubTab === 'servicios' && <ServiciosTab animalId={animalId} />}
+        {activeSubTab === 'tactos' && <TactosTab animal={animal} />}
+        {activeSubTab === 'servicios' && <ServiciosTab animal={animal} />}
       </div>
 
     </div>

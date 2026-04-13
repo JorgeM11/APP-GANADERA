@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Plus, Stethoscope } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
+import BottomSheet from '@/components/ui/BottomSheet';
+import TactoForm from '@/components/inventario/TactoForm';
 
-export default function TactosTab({ animalId }) {
+export default function TactosTab({ animal }) {
+  const animalId = animal?.id;
+  const [editingCheck, setEditingCheck] = useState(null);
+
   const checks = useLiveQuery(
     () => db.pregnancy_checks
       .where('animal_id').equals(animalId)
@@ -14,13 +19,17 @@ export default function TactosTab({ animalId }) {
     [animalId]
   );
 
-  const cleanAnimalId = animalId.toString().replace('#', '');
+  const cleanAnimalId = animalId?.toString().replace('#', '') || '';
 
   return (
     <div className="relative min-h-[50vh] space-y-4">
       {checks && checks.length > 0 ? (
         checks.map((check) => (
-          <div key={check.id} className="bg-white p-5 rounded-2xl border border-neutral-200">
+          <div 
+            key={check.id} 
+            onClick={() => setEditingCheck(check)}
+            className="bg-white p-5 rounded-2xl border border-neutral-200 cursor-pointer active:scale-[0.98] transition-all hover:border-[#1B4820]/30 shadow-sm"
+          >
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs uppercase tracking-widest text-[#1B4820] font-bold">
                 {new Date(check.check_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -51,6 +60,25 @@ export default function TactosTab({ animalId }) {
       >
         <Plus className="w-7 h-7" strokeWidth={3} />
       </Link>
+
+      {/* MODAL DE EDICIÓN */}
+      <BottomSheet
+        isOpen={!!editingCheck}
+        onClose={() => setEditingCheck(null)}
+        title="Editar Tacto"
+        description={editingCheck ? `Modificar diagnóstico del ${new Date(editingCheck.check_date).toLocaleDateString('es-ES')}` : ''}
+      >
+        <div className="pb-8">
+          <TactoForm
+            animal={animal}
+            initialValues={editingCheck}
+            onSubmitSuccess={() => setEditingCheck(null)}
+            onCancel={() => setEditingCheck(null)}
+            isModal={true}
+          />
+        </div>
+      </BottomSheet>
     </div>
   );
 }
+

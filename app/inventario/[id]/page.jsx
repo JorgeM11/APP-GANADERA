@@ -105,7 +105,7 @@ export default function AnimalProfilePage({ params }) {
           {activeTab === 'details' && <DetailsTab animal={animal} onEdit={() => setIsEditModalOpen(true)} />}
           {activeTab === 'evolution' && <EvolutionTab animal={animal} />}
           {activeTab === 'health' && <HealthTab animal={animal} />}
-          {activeTab === 'reproduction' && <ReproductionTab animalId={animal.id} />}
+          {activeTab === 'reproduction' && <ReproductionTab animal={animal} />}
           {activeTab === 'genealogy' && <GenealogyTab animal={animal} />}
         </div>
       </div>
