@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
@@ -8,112 +10,132 @@ import { Share2 } from 'lucide-react';
 export default function GenealogyTab({ animal }) {
   const animalId = animal?.id;
 
-  // 1. Obtener Padres
-  const father = useLiveQuery(() => animal?.father_id ? db.animals.get(animal.father_id) : null, [animal?.father_id]);
-  const mother = useLiveQuery(() => animal?.mother_id ? db.animals.get(animal.mother_id) : null, [animal?.mother_id]);
+  // --- CONSULTA DE DATOS ---
+  const data = useLiveQuery(async () => {
+    if (!animal) return null;
 
-  // 2. Obtener Descendientes
-  const offspring = useLiveQuery(
-    () => db.animals
+    // 1. Ascendencia
+    const father = animal.father_id ? await db.animals.get(animal.father_id) : null;
+    const mother = animal.mother_id ? await db.animals.get(animal.mother_id) : null;
+    const gPaternalf = father?.father_id ? await db.animals.get(father.father_id) : null;
+    const gPaternalm = father?.mother_id ? await db.animals.get(father.mother_id) : null;
+    const gMaternalf = mother?.father_id ? await db.animals.get(mother.father_id) : null;
+    const gMaternalm = mother?.mother_id ? await db.animals.get(mother.mother_id) : null;
+
+    // 2. Descendencia Directa (Hijos)
+    const children = await db.animals
       .where('mother_id').equals(animalId)
       .or('father_id').equals(animalId)
       .toArray()
-      .then(res => res.filter(a => !a.deleted_at)),
-    [animalId]
-  );
+      .then(res => res.filter(a => !a.deleted_at));
 
-  const FamilyCard = ({ label, id, relation, isMain, photo_path, photo_blob }) => (
-    <div className={`bg-white p-3 rounded-2xl shadow-sm border border-neutral-100 flex items-center gap-3 transition-all ${isMain ? 'ring-2 ring-[#1B4820] scale-105 z-10' : 'hover:bg-neutral-50'}`}>
-      <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-200 shrink-0 border border-neutral-100">
-        <AnimalImage 
-          photoPath={photo_path}
-          photoBlob={photo_blob}
-          alt={`#${id}`}
-          className="w-full h-full"
-        />
+    // 3. Nietos (Hijos de los hijos)
+    const childrenIds = children.map(c => c.id);
+    const grandchildren = await db.animals
+      .where('mother_id').anyOf(childrenIds)
+      .or('father_id').anyOf(childrenIds)
+      .toArray()
+      .then(res => res.filter(a => !a.deleted_at));
+
+    return { father, mother, gPaternalf, gPaternalm, gMaternalf, gMaternalm, children, grandchildren };
+  }, [animal]);
+
+  if (!animal || !data) return null;
+
+  // --- COMPONENTES INTERNOS ---
+  const Node = ({ animal, label, variant = "default" }) => (
+    <div className="flex flex-col items-center z-10 shrink-0">
+      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 overflow-hidden bg-white shadow-md transition-transform hover:cursor-pointer hover:scale-110 ${
+        variant === "main" ? 'border-[#1B4820] sm:w-24 sm:h-24 w-18 h-18 ring-4 ring-emerald-50' : 'border-neutral-200'
+      }`}>
+        <AnimalImage photoPath={animal?.photo_path} photoBlob={animal?.photo_blob} className="w-full h-full" />
       </div>
-      <div>
-        <p className="text-[12px] font-black text-neutral-800 leading-tight">#{id || '---'}</p>
-        <p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">{relation}</p>
+      <div className="mt-1 text-center">
+        <p className={`text-[10px] font-black leading-none ${variant === "main" ? 'text-[#1B4820] text-sm' : 'text-neutral-800'}`}>
+          #{animal?.number || '---'}
+        </p>
+        <p className="text-[7px] font-bold text-neutral-400 uppercase tracking-tighter">{label}</p>
       </div>
     </div>
   );
 
-  if (!animal) return null;
+  const LevelIndicator = ({ text }) => (
+    <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-[#F0F2EB] px-2 pb-1 rounded-full border border-neutral-200 z-20">
+      <span className="text-[6px] font-black text-neutral-400 uppercase tracking-widest whitespace-nowrap">{text}</span>
+    </div>
+  );
 
   return (
-    <div className="space-y-10 py-4 max-w-lg mx-auto pb-20">
+    <div className="py-8 px-2 max-w-2xl mx-auto overflow-hidden">
       
-      {/* LÍNEA DE ASCENDENCIA */}
-      <div className="space-y-6 text-center">
-        <h5 className="text-[10px] pb-2 font-black uppercase tracking-[0.3em] text-neutral-400">Padres (Progenitores)</h5>
-        
-        <div className="flex justify-center items-center gap-4 relative">
-          <FamilyCard 
-             id={father?.number} 
-             relation="Padre" 
-             photo_path={father?.photo_path} 
-             photo_blob={father?.photo_blob} 
-          />
-          <FamilyCard 
-             id={mother?.number} 
-             relation="Madre" 
-             photo_path={mother?.photo_path} 
-             photo_blob={mother?.photo_blob} 
-          />
-        </div>
+      {/* 1. NIVEL: ABUELOS */}
+      <div className="grid grid-cols-4 gap-1 mb-4">
+        <Node animal={data.gPaternalf} label="Abuelo Pat." />
+        <Node animal={data.gPaternalm} label="Abuela Pat." />
+        <Node animal={data.gMaternalf} label="Abuelo Mat." />
+        <Node animal={data.gMaternalm} label="Abuela Mat." />
       </div>
 
-      {/* SUJETO ACTUAL */}
-      <div className="relative py-14 flex justify-center">
-        {/* Línea conectora vertical de fondo */}
-        <div className="absolute h-full w-px bg-neutral-200 top-0 left-1/2 -translate-x-1/2" />
-        
-        <div className="bg-[#1B4820] text-white p-8 rounded-[3rem] shadow-2xl z-10 text-center min-w-[220px] border-4 border-white relative">
-          {/* Imagen Circular del Sujeto */}
-          <div className="relative inline-block mb-4">
-            <div className="w-20 h-20 rounded-full border-2 border-white overflow-hidden shadow-md bg-neutral-100">
-              <AnimalImage 
-                photoPath={animal.photo_path}
-                photoBlob={animal.photo_blob}
-                alt={animal.number}
-                className="w-full h-full"
-              />
-            </div>
-          </div>
-
-          <p className="text-2xl font-black italic leading-none mb-4">#{animal.number}</p>
-          
-          <div className="pt-4 border-t border-white/10">
-            <p className="text-[10px] font-bold opacity-50 uppercase tracking-[0.2em] mb-1">Peso Registrado</p>
-            <p className="text-xl font-black italic leading-none">{formatWeight(animal.last_weight_kg)}</p>
-          </div>
-        </div>
+      {/* LÍNEAS ABUELOS -> PADRES */}
+      <div className="grid grid-cols-2 h-8 -mt-2 mb-2 relative">
+        <div className="border-x border-t border-neutral-300 rounded-t-xl mx-auto w-1/2 h-full"></div>
+        <div className="border-x border-t border-neutral-300 rounded-t-xl mx-auto w-1/2 h-full"></div>
       </div>
 
-      {/* LÍNEA DE DESCENDENCIA */}
-      <div className="space-y-6 text-center">
-        <h5 className="text-[10px] font-black pb-2 uppercase tracking-[0.3em] text-neutral-400">Descendencia Directa</h5>
-        
-        {offspring && offspring.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {offspring.map(child => (
-              <FamilyCard 
-                key={child.id}
-                id={child.number} 
-                relation={child.sex === 'Hembra' ? 'Hija' : 'Hijo'} 
-                photo_path={child.photo_path}
-                photo_blob={child.photo_blob}
-              />
-            ))}
-          </div>
+      {/* 2. NIVEL: PADRES */}
+      <div className="grid grid-cols-2 gap-10 mb-6">
+        <Node animal={data.father} label="Padre" />
+        <Node animal={data.mother} label="Madre" />
+      </div>
+
+      {/* LÍNEAS PADRES -> SUJETO (Con Etiqueta) */}
+      <div className="relative h-10 -mt-4 mb-4">
+        <div className="absolute top-0 left-1/4 right-1/4 h-full border-x border-b border-neutral-300 rounded-b-2xl"></div>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-1/2 bg-neutral-300"></div>
+        <LevelIndicator text="Padres" />
+      </div>
+
+      {/* 3. NIVEL: ANIMAL ACTUAL (CENTRO) */}
+      <div className="flex justify-center mb-10">
+        <Node animal={animal} label="Sujeto Actual" variant="main" />
+      </div>
+
+      {/* LÍNEA SUJETO -> HIJOS (Con Etiqueta) */}
+      <div className="relative h-10 -mt-10 mb-4">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-full bg-neutral-300"></div>
+        <LevelIndicator text="Hijos" />
+      </div>
+
+      {/* 4. NIVEL: HIJOS (Línea Horizontal) */}
+      <div className="flex justify-center gap-4 w-full overflow-x-auto py-2 no-scrollbar mb-4">
+        {data.children.length > 0 ? (
+          data.children.map(child => (
+            <Node key={child.id} animal={child} label={child.sex === 'Hembra' ? 'Hija' : 'Hijo'} />
+          ))
         ) : (
-          <div className="flex flex-col items-center justify-center py-4 text-neutral-300">
-            <Share2 className="w-8 h-8 opacity-20 mb-2" />
-            <p className="text-[10px] font-black uppercase tracking-widest">Sin descendencia registrada</p>
+          <div className="flex flex-col items-center text-neutral-300 py-4 w-full">
+             <Share2 className="w-6 h-6 opacity-20" />
+             <p className="text-[8px] font-black uppercase mt-1">Sin Hijos</p>
           </div>
         )}
       </div>
+
+      {/* LÍNEAS HIJOS -> NIETOS (Con Etiqueta) */}
+      {data.grandchildren.length > 0 && (
+        <>
+          <div className="relative h-10 -mt-2 mb-4">
+            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-neutral-300"></div>
+            <LevelIndicator text="Nietos" />
+          </div>
+
+          {/* 5. NIVEL: NIETOS (Línea Horizontal) */}
+          <div className="flex justify-center gap-4 w-full overflow-x-auto py-2 no-scrollbar">
+            {data.grandchildren.map(grandchild => (
+              <Node key={grandchild.id} animal={grandchild} label="Nieto(a)" />
+            ))}
+          </div>
+        </>
+      )}
 
     </div>
   );

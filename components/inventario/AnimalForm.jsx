@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -77,9 +77,12 @@ const ImageUploader = ({ preview, onCapture, onRemove, label, id }) => {
 export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, onOpenModal, isModal = false }) {
   const router = useRouter();
   const [activeAccordions, setActiveAccordions] = useState({ birth: false, weaning: false, service: false });
+  
+  // Guardamos IDs de eventos existentes para edición
+  const [eventIds, setEventIds] = useState({ birth: null, weaning: null });
 
   const [images, setImages] = useState({
-    main: { blob: null, preview: null },
+    main: { blob: null, preview: initialValues?.photo_path || null },
     birth: { blob: null, preview: null },
     weaning: { blob: null, preview: null }
   });
@@ -90,15 +93,61 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   const [isSavingQuickService, setIsSavingQuickService] = useState(false);
   const [quickServiceData, setQuickServiceData] = useState({ date: '', type: 'Monta Natural' });
 
+  // Mapeamos last_weight_kg de la DB al campo current_weight_kg del form para que se refleje al editar
+  const defaultValuesMapped = useMemo(() => {
+    if (!initialValues) return { sex: 'Macho', status: 'Activo' };
+    return {
+      ...initialValues,
+      current_weight_kg: initialValues.last_weight_kg,
+    };
+  }, [initialValues]);
+
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(animalSchema),
-    defaultValues: initialValues || { sex: 'Macho', status: 'Activo' }
+    defaultValues: defaultValuesMapped
   });
 
   const selectedSex = watch('sex');
   const selectedStatus = watch('status');
   const fatherId = watch('father_id');
   const motherId = watch('mother_id');
+
+  // --- CARGA DE DATOS DE EVENTOS AL EDITAR ---
+  useEffect(() => {
+    const loadExistingEvents = async () => {
+      if (!initialValues?.id) return;
+
+      const events = await db.growth_events
+        .where('animal_id')
+        .equals(initialValues.id)
+        .toArray();
+
+      const birth = events.find(e => e.event_type === 'Nacimiento');
+      const weaning = events.find(e => e.event_type === 'Destete');
+
+      if (birth) {
+        setEventIds(prev => ({ ...prev, birth: birth.id }));
+        setValue('birth_date', birth.event_date);
+        setValue('birth_weight_kg', birth.weight_kg);
+        setValue('mother_weight_at_birth', birth.mother_weight_kg);
+        setValue('navel_length', birth.navel_length);
+        setValue('birth_observations', birth.observations);
+        setImages(prev => ({ ...prev, birth: { blob: null, preview: birth.photo_path } }));
+      }
+
+      if (weaning) {
+        setEventIds(prev => ({ ...prev, weaning: weaning.id }));
+        setValue('weaning_date', weaning.event_date);
+        setValue('weaning_weight_kg', weaning.weight_kg);
+        setValue('mother_weight_at_weaning', weaning.mother_weight_kg);
+        setValue('sc_at_weaning', weaning.scrotal_circumference_cm);
+        setValue('weaning_observations', weaning.observations);
+        setImages(prev => ({ ...prev, weaning: { blob: null, preview: weaning.photo_path } }));
+      }
+    };
+
+    loadExistingEvents();
+  }, [initialValues, setValue]);
 
   const motherServices = useLiveQuery(
     () => motherId ? db.services.where('mother_id').equals(motherId).and(s => !s.deleted_at).toArray() : [],
@@ -109,7 +158,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
     setActiveAccordions(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // --- OPCIONES PARA SELECTORES PERSONALIZADOS ---
   const originServiceId = watch('origin_service_id');
 
   const motherServicesOptions = useMemo(() => {
@@ -143,7 +191,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
     setImages(prev => ({ ...prev, [type]: { blob: null, preview: null } }));
   };
 
-  // --- CORRECCIÓN OFFLINE: CREADOR RÁPIDO DE SERVICIO ---
   const handleQuickServiceCreate = async () => {
     if (!quickServiceData.date) return alert('Selecciona una fecha para el servicio');
     if (isSavingQuickService) return;
@@ -151,7 +198,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
     setIsSavingQuickService(true);
 
     try {
-      // USAMOS getSession() EN LUGAR DE getUser() PARA MODO OFFLINE
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
 
@@ -165,6 +211,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         id: crypto.randomUUID(),
         user_id: user.id,
         mother_id: motherId,
+        father_id: fatherId || null,
         type_conception: quickServiceData.type,
         service_date: quickServiceData.date,
         created_at: new Date().toISOString(),
@@ -177,10 +224,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       });
 
       setToast({ show: true, type: 'success', message: 'Servicio registrado correctamente' });
-      
-      // Await para mantener el estado de carga mientras se muestra el toast
       await new Promise(r => setTimeout(r, 1500));
-      
       setToast({ show: false, type: 'success', message: '' });
       setValue('origin_service_id', newService.id);
       setShowQuickService(false);
@@ -194,10 +238,8 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
     }
   };
 
-  // --- CORRECCIÓN OFFLINE: GUARDADO MAESTRO ---
   const handleSave = async (data) => {
     try {
-      // USAMOS getSession() EN LUGAR DE getUser() PARA MODO OFFLINE
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
 
@@ -212,22 +254,22 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       const animalId = initialValues?.id || crypto.randomUUID();
       const now = new Date().toISOString();
 
-      const processImage = async (blob, prefix) => {
-        if (!blob) return { url: null, blob: null };
+      const processImage = async (imgData, prefix, existingPath) => {
+        if (!imgData.blob) return { url: existingPath || null, blob: null };
         let url = null;
         if (isOnline) {
           try {
-            url = await uploadImageToSupabase(blob, `${prefix}-${Date.now()}`);
+            url = await uploadImageToSupabase(imgData.blob, `${prefix}-${Date.now()}`);
           } catch (e) {
             console.error('Fallo subida, guardando local', e);
           }
         }
-        return { url, blob };
+        return { url, blob: imgData.blob };
       };
 
-      const mainImg = await processImage(images.main.blob, `animal-${data.number}`);
-      const birthImg = await processImage(images.birth.blob, `birth-${data.number}`);
-      const weaningImg = await processImage(images.weaning.blob, `weaning-${data.number}`);
+      const mainImg = await processImage(images.main, `animal-${data.number}`, initialValues?.photo_path);
+      const birthImg = await processImage(images.birth, `birth-${data.number}`, images.birth.preview);
+      const weaningImg = await processImage(images.weaning, `weaning-${data.number}`, images.weaning.preview);
 
       await db.transaction('rw', [db.animals, db.growth_events, db.sync_queue], async () => {
         const animalData = {
@@ -243,7 +285,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
           father_id: data.father_id || null,
           origin_service_id: data.origin_service_id || null,
           observations: data.observations || null,
-          photo_path: mainImg.url || (isEditing ? initialValues.photo_path : null),
+          photo_path: mainImg.url,
           photo_blob: mainImg.blob || (isEditing ? initialValues.photo_blob : null),
           last_weight_kg: data.current_weight_kg || data.weaning_weight_kg || data.birth_weight_kg || (isEditing ? initialValues.last_weight_kg : null),
           last_weight_date: data.current_weight_kg ? now : (data.weaning_weight_kg ? data.weaning_date : (data.birth_weight_kg ? data.birth_date : (isEditing ? initialValues.last_weight_date : null))),
@@ -262,7 +304,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
 
         if (data.birth_date) {
           const birthEvent = {
-            id: crypto.randomUUID(),
+            id: eventIds.birth || crypto.randomUUID(),
             user_id: user.id,
             animal_id: animalId,
             event_type: 'Nacimiento',
@@ -273,31 +315,31 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
             observations: data.birth_observations || null,
             photo_path: birthImg.url,
             photo_blob: birthImg.blob,
-            created_at: now,
+            created_at: eventIds.birth ? undefined : now,
             updated_at: now
           };
-          await db.growth_events.add(birthEvent);
-          await addToSyncQueue('growth_events', 'INSERT', birthEvent);
+          await db.growth_events.put(birthEvent);
+          await addToSyncQueue('growth_events', eventIds.birth ? 'UPDATE' : 'INSERT', birthEvent);
         }
 
         if (data.weaning_date) {
           const weaningEvent = {
-            id: crypto.randomUUID(),
+            id: eventIds.weaning || crypto.randomUUID(),
             user_id: user.id,
             animal_id: animalId,
             event_type: 'Destete',
             event_date: data.weaning_date,
             weight_kg: data.weaning_weight_kg || null,
             mother_weight_kg: data.mother_weight_at_weaning || null,
-            scrotal_circumference_cm: data.current_sc_cm || null,
+            scrotal_circumference_cm: data.sc_at_weaning || null,
             observations: data.weaning_observations || null,
             photo_path: weaningImg.url,
             photo_blob: weaningImg.blob,
-            created_at: now,
+            created_at: eventIds.weaning ? undefined : now,
             updated_at: now
           };
-          await db.growth_events.add(weaningEvent);
-          await addToSyncQueue('growth_events', 'INSERT', weaningEvent);
+          await db.growth_events.put(weaningEvent);
+          await addToSyncQueue('growth_events', eventIds.weaning ? 'UPDATE' : 'INSERT', weaningEvent);
         }
       });
 
@@ -307,9 +349,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         message: isEditing ? 'Cambios guardados exitosamente' : 'Animal registrado con éxito' 
       });
 
-      // Await para mantener el botón bloqueado y con spinner mientras se muestra el toast
       await new Promise(r => setTimeout(r, 1500));
-
       setToast({ show: false, type: 'success', message: '' });
       onSubmitSuccess && onSubmitSuccess(animalId);
 
@@ -358,7 +398,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         <input {...register('color')} placeholder="Color (Ej: Rojo Suave)" className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20" />
       </section>
 
-      {/* ESTADO Y DISPONIBILIDAD (Solo visible en edición o si es necesario) */}
+      {/* ESTADO Y DISPONIBILIDAD */}
       <section className="bg-white rounded-3xl p-5 mb-4 border border-neutral-100 shadow-sm">
         <CustomSelect
           label="Estado del Animal"
@@ -501,6 +541,10 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
               <ImageUploader id="weaning" label="Foto al Destete" preview={images.weaning.preview} onCapture={(e) => handleImageCapture(e, 'weaning')} onRemove={() => removeImage('weaning')} />
               <input type="date" {...register('weaning_date')} className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
               <input type="number" step="any" {...register('weaning_weight_kg')} placeholder="Peso al Destete (KG)" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              
+              {/* INPUT DE CIRC. ESCROTAL MOVIDO AQUÍ */}
+              <input type="number" step="any" {...register('sc_at_weaning')} placeholder="Circ. Escrotal al Destete (CM)" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              
               <input type="number" step="any" {...register('mother_weight_at_weaning')} placeholder="Peso Madre al Destete" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
               <textarea {...register('weaning_observations')} placeholder="Observaciones del destete..." rows={2} className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none resize-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
             </div>
@@ -512,16 +556,12 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       <section className="bg-neutral-50 rounded-3xl p-5 mb-4 border border-neutral-100">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-1 h-5 rounded-full bg-[#1B4820]"></div>
-          <h3 className="text-lg font-bold text-[#1B4820]">Medidas y Pesos Actuales</h3>
+          <h3 className="text-lg font-bold text-[#1B4820]">Peso Actual</h3>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4"> {/* Cambiado a 1 columna ya que solo queda un input */}
           <div>
             <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block">Peso Actual (KG)</label>
             <input type="number" step="any" {...register('current_weight_kg')} placeholder="0.00" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block">Circ. Escrotal (CM)</label>
-            <input type="number" step="any" {...register('current_sc_cm')} placeholder="0.00" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
           </div>
         </div>
       </section>
