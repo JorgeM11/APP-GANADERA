@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   Syringe, 
@@ -13,6 +13,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { formatWeight } from '@/lib/dateUtils';
 import AnimalImage from '@/components/inventario/AnimalImage';
+import BottomSheet from '@/components/ui/BottomSheet';
+import HealthForm from '@/components/inventario/HealthForm';
 
 const PRODUCT_STYLES = {
   'Vacuna': { icon: Syringe, color: 'bg-[#EEF7EE] text-[#1B4820]' },
@@ -23,6 +25,7 @@ const PRODUCT_STYLES = {
 
 export default function HealthTab({ animal }) {
   const animalId = animal?.id;
+  const [editingRecord, setEditingRecord] = useState(null);
 
   // Consulta reactiva a registros de salud
   const records = useLiveQuery(
@@ -82,7 +85,8 @@ export default function HealthTab({ animal }) {
             return (
               <div 
                 key={item.id} 
-                className="bg-white p-6 rounded-[2.5rem] flex items-start gap-5 border border-neutral-100 shadow-sm"
+                onClick={() => setEditingRecord(item)}
+                className="bg-white p-6 rounded-[2.5rem] flex items-start gap-5 border border-neutral-100 shadow-sm transition-all active:scale-[0.98] cursor-pointer hover:border-emerald-100"
               >
                 {/* Círculo de Icono */}
                 <div className={`${style.color} w-14 h-14 rounded-full flex items-center justify-center shrink-0`}>
@@ -131,6 +135,22 @@ export default function HealthTab({ animal }) {
           <Plus className="w-7 h-7" strokeWidth={3} />
         </button>
       </Link>
+
+      {/* MODAL DE EDICIÓN */}
+      <BottomSheet
+        isOpen={!!editingRecord}
+        onClose={() => setEditingRecord(null)}
+        title="Editar Tratamiento"
+        description={`Modifica el registro médico de ${editingRecord?.product_name}`}
+      >
+        <HealthForm 
+          animal={animal}
+          initialValues={editingRecord}
+          onSubmitSuccess={() => setEditingRecord(null)}
+          onCancel={() => setEditingRecord(null)}
+          isModal
+        />
+      </BottomSheet>
     </div>
   );
 }
