@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
-import { formatWeight } from '@/lib/dateUtils';
 import AnimalImage from '@/components/inventario/AnimalImage';
 import { Share2 } from 'lucide-react';
 
@@ -43,7 +43,7 @@ export default function GenealogyTab({ animal }) {
   if (!animal || !data) return null;
 
   // --- COMPONENTES INTERNOS ---
-  const Node = ({ animal, label, variant = "default" }) => (
+  const NodeContent = ({ animal, label, variant }) => (
     <div className="flex flex-col items-center z-10 shrink-0">
       <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 overflow-hidden bg-white shadow-md transition-transform hover:cursor-pointer hover:scale-110 ${
         variant === "main" ? 'border-[#1B4820] sm:w-24 sm:h-24 w-18 h-18 ring-4 ring-emerald-50' : 'border-neutral-200'
@@ -58,6 +58,20 @@ export default function GenealogyTab({ animal }) {
       </div>
     </div>
   );
+
+  const Node = ({ animal, label, variant = "default" }) => {
+    // Si el animal no existe (ej. un abuelo no registrado), renderiza solo el diseño sin Link
+    if (!animal) {
+      return <NodeContent animal={null} label={label} variant={variant} />;
+    }
+
+    // Si el animal existe, envuélvelo en un Link para navegar a su perfil
+    return (
+      <Link href={`/inventario/${animal.id}`} className="block focus:outline-none">
+        <NodeContent animal={animal} label={label} variant={variant} />
+      </Link>
+    );
+  };
 
   const LevelIndicator = ({ text }) => (
     <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-[#F0F2EB] px-2 pb-1 rounded-full border border-neutral-200 z-20">

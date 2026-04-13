@@ -57,7 +57,7 @@ export default function AnimalImage({
     return (
       <div className={`flex flex-col items-center justify-center bg-neutral-100 text-neutral-400 ${className}`}>
         <Camera className="w-1/3 h-1/3 opacity-50" strokeWidth={1} />
-        <span className="text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50">SIN FOTO</span>
+        <span className="text-[5px] font-bold uppercase tracking-widest mt-1 opacity-50">SIN FOTO</span>
       </div>
     );
   }
