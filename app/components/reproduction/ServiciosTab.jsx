@@ -11,11 +11,27 @@ export default function ServiciosTab({ animal }) {
   const [editingService, setEditingService] = useState(null);
 
   const services = useLiveQuery(
-    () => db.services
-      .where('mother_id').equals(animalId)
-      .reverse()
-      .sortBy('service_date')
-      .then(res => res.filter(s => !s.deleted_at)),
+    async () => {
+      if (!animalId) return [];
+      const svcs = await db.services
+        .where('mother_id').equals(animalId)
+        .reverse()
+        .sortBy('service_date');
+      
+      const filteredSvcs = svcs.filter(s => !s.deleted_at);
+
+      const servicesWithFathers = await Promise.all(
+        filteredSvcs.map(async (service) => {
+          if (service.father_id) {
+            const father = await db.animals.get(service.father_id);
+            return { ...service, father_number: father?.number || null };
+          }
+          return service;
+        })
+      );
+      
+      return servicesWithFathers;
+    },
     [animalId]
   );
 
@@ -34,10 +50,16 @@ export default function ServiciosTab({ animal }) {
               {new Date(service.service_date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
             <h3 className="font-bold text-gray-800 text-lg mt-1">
-              {service.type_conception === 'IA' ? 'Inseminación Artificial' : 'Monta Natural'}
+              {service.type_conception === 'IA' ? 'Inseminación Artificial' : 
+               service.type_conception === 'MN' ? 'Monta Natural' : 
+               service.type_conception}
             </h3>
             <p className="text-sm text-gray-500 mt-2">
-              Padre/Pajuela: <span className="font-bold text-[#1B4820]">{service.father_id ? `#${service.father_id.split('-')[0]}` : 'N/A'}</span>
+              Padre/Pajuela: <span className="font-bold text-[#1B4820]">
+                {service.father_number 
+                  ? `#${service.father_number}` 
+                  : (service.father_id ? `#${service.father_id.split('-')[0]}` : 'N/A')}
+              </span>
             </p>
           </div>
         ))
@@ -65,6 +87,7 @@ export default function ServiciosTab({ animal }) {
       >
         <div className="pb-8">
           <ServicioForm
+            key={editingService ? editingService.id : 'new'}
             animal={animal}
             initialValues={editingService}
             onSubmitSuccess={() => setEditingService(null)}

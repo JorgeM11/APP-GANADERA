@@ -24,15 +24,7 @@ import GenealogySelector from "@/components/inventario/GenealogySelector";
 import BottomSheet from "@/components/ui/BottomSheet";
 import AnimalForm from "@/components/inventario/AnimalForm";
 
-const SERVICE_TYPE_MAP = {
-  'Monta Natural': 'MN',
-  'Inseminación Artificial': 'IA'
-};
-
-const SERVICE_TYPE_REVERSE = {
-  'MN': 'Monta Natural',
-  'IA': 'Inseminación Artificial'
-};
+// Los mapeos antiguos se manejan como legacy en el estado inicial
 
 export default function ServicioForm({
   animal,
@@ -55,7 +47,9 @@ export default function ServicioForm({
   // --- ESTADOS REACT ---
   const [tipoServicio, setTipoServicio] = useState(() => {
     if (initialValues?.type_conception) {
-      return SERVICE_TYPE_REVERSE[initialValues.type_conception] || 'Monta Natural';
+      if (initialValues.type_conception === 'MN') return 'Monta Natural';
+      if (initialValues.type_conception === 'IA') return 'Inseminación Artificial';
+      return initialValues.type_conception;
     }
     return 'Monta Natural';
   });
@@ -95,7 +89,7 @@ export default function ServicioForm({
         user_id: user.id,
         mother_id: animal.id,
         father_id: data.toroId || null,
-        type_conception: SERVICE_TYPE_MAP[tipoServicio],
+        type_conception: tipoServicio,
         service_date: data.fechaServicio,
         created_at: isEditing ? initialValues.created_at : now,
         updated_at: now,
