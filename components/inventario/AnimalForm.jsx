@@ -150,7 +150,22 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   }, [initialValues, setValue]);
 
   const motherServices = useLiveQuery(
-    () => motherId ? db.services.where('mother_id').equals(motherId).and(s => !s.deleted_at).toArray() : [],
+    async () => {
+      if (!motherId) return [];
+      const services = await db.services.where('mother_id').equals(motherId).toArray();
+      const validServices = services.filter(s => !s.deleted_at);
+      
+      const fatherIds = validServices.map(s => s.father_id).filter(Boolean);
+      const fathers = fatherIds.length > 0 ? await db.animals.where('id').anyOf(fatherIds).toArray() : [];
+      
+      const fatherMap = {};
+      fathers.forEach(f => { fatherMap[f.id] = f.number; });
+
+      return validServices.map(service => ({
+        ...service,
+        father_number: service.father_id ? (fatherMap[service.father_id] || null) : null
+      }));
+    },
     [motherId]
   );
 
@@ -162,10 +177,26 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
 
   const motherServicesOptions = useMemo(() => {
     if (!motherServices) return [];
-    return motherServices.map(s => ({
-      value: s.id,
-      label: `${new Date(s.service_date).toLocaleDateString()} - ${s.type_conception}`
-    }));
+    return motherServices.map(s => {
+      let toroInfo = '';
+      if (s.father_number) {
+        toroInfo = ` (Toro: #${s.father_number})`;
+      } else if (s.father_id) {
+        // En caso de que sea un texto viejo ingresado y no un id, lo mostramos, si no (es uuid), lo damos por eliminado
+        if (s.father_id.includes('-') && s.father_id.length > 20) {
+             toroInfo = ` (Toro: Desconocido/Eliminado)`;
+        } else {
+             toroInfo = ` (Toro: ${s.father_id})`; 
+        }
+      } else {
+        toroInfo = ` (Sin Toro)`;
+      }
+      
+      return {
+        value: s.id,
+        label: `${new Date(s.service_date).toLocaleDateString()} - ${s.type_conception}${toroInfo}`
+      };
+    });
   }, [motherServices]);
 
   const serviceTypeOptions = [

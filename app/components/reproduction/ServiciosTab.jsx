@@ -20,17 +20,16 @@ export default function ServiciosTab({ animal }) {
       
       const filteredSvcs = svcs.filter(s => !s.deleted_at);
 
-      const servicesWithFathers = await Promise.all(
-        filteredSvcs.map(async (service) => {
-          if (service.father_id) {
-            const father = await db.animals.get(service.father_id);
-            return { ...service, father_number: father?.number || null };
-          }
-          return service;
-        })
-      );
+      const fatherIds = filteredSvcs.map(s => s.father_id).filter(Boolean);
+      const fathers = fatherIds.length > 0 ? await db.animals.where('id').anyOf(fatherIds).toArray() : [];
       
-      return servicesWithFathers;
+      const fatherMap = {};
+      fathers.forEach(f => { fatherMap[f.id] = f.number; });
+
+      return filteredSvcs.map(service => ({
+        ...service,
+        father_number: service.father_id ? (fatherMap[service.father_id] || null) : null
+      }));
     },
     [animalId]
   );

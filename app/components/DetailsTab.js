@@ -2,8 +2,20 @@ import React from 'react';
 import { IdCard, Network, FileText, Pencil, CircleAlert } from 'lucide-react';
 import AnimalImage from '@/components/inventario/AnimalImage';
 import { calculateAge, formatWeight } from '@/lib/dateUtils';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
+import Link from 'next/link';
 
 export default function DetailsTab({ animal, onEdit }) {
+  const parents = useLiveQuery(
+    async () => {
+      if (!animal) return { father: null, mother: null };
+      const father = animal.father_id ? await db.animals.get(animal.father_id) : null;
+      const mother = animal.mother_id ? await db.animals.get(animal.mother_id) : null;
+      return { father, mother };
+    },
+    [animal]
+  );
   if (!animal) return null;
 
   return (
@@ -75,8 +87,30 @@ export default function DetailsTab({ animal, onEdit }) {
             <h3 className="text-lg font-bold text-[#1B4820]">Genealogía Directa</h3>
           </div>
           <div className="pl-4 border-l-2 border-neutral-100 grid grid-cols-2 gap-y-4 text-sm">
-            <DataRow label="Padre (Semental)" value={animal.father_id ? `#${animal.father_id.split('-')[0]}` : 'Desconocido'} />
-            <DataRow label="Madre (Vientre)" value={animal.mother_id ? `#${animal.mother_id.split('-')[0]}` : 'Desconocida'} />
+            <DataRow 
+              label="Padre (Semental)" 
+              value={
+                animal.father_id ? (
+                  <Link href={`/inventario/${animal.father_id}`} className="hover:underline hover:text-[#1A3621] transition-colors cursor-pointer inline-flex items-center">
+                    {parents?.father?.number ? `#${parents.father.number}` : `#${animal.father_id.split('-')[0]}`}
+                  </Link>
+                ) : (
+                  'Desconocido'
+                )
+              } 
+            />
+            <DataRow 
+              label="Madre (Vientre)" 
+              value={
+                animal.mother_id ? (
+                  <Link href={`/inventario/${animal.mother_id}`} className="hover:underline hover:text-[#1A3621] transition-colors cursor-pointer inline-flex items-center">
+                    {parents?.mother?.number ? `#${parents.mother.number}` : `#${animal.mother_id.split('-')[0]}`}
+                  </Link>
+                ) : (
+                  'Desconocida'
+                )
+              } 
+            />
           </div>
         </section>
 

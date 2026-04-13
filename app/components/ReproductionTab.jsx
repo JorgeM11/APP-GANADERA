@@ -18,18 +18,17 @@ export default function ReproductionTab({ animal }) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      
+
       {/* Sub-Navegación Pills */}
       <div className="flex items-center justify-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
         {subTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            className={`flex flex-row items-center justify-center gap-1.5 px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap ${
-              activeSubTab === tab.id
-                ? 'bg-[#1B4820] text-white shadow-md'
-                : 'bg-white text-gray-500 border border-neutral-200 hover:bg-neutral-50'
-            }`}
+            className={`flex flex-row items-center justify-center gap-1.5 px-2 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id
+              ? 'bg-[#1B4820] text-white shadow-md'
+              : 'bg-white text-gray-500 border border-neutral-200 hover:bg-neutral-50'
+              }`}
           >
             <tab.icon size={16} strokeWidth={2.5} />
             {tab.label}
