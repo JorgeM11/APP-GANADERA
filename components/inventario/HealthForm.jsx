@@ -57,7 +57,8 @@ export default function HealthForm({
   initialValues = null, 
   onSubmitSuccess, 
   onCancel,
-  isModal = false 
+  isModal = false,
+  batchAnimalIds = []
 }) {
   const isEditing = !!initialValues?.id;
 
@@ -97,27 +98,53 @@ export default function HealthForm({
       }
 
       const now = new Date().toISOString();
-      const recordData = {
-        id: isEditing ? initialValues.id : crypto.randomUUID(),
-        user_id: user.id,
-        animal_id: animal.id,
-        product_type: PRODUCT_TYPE_MAP[selectedType],
-        product_name: data.productName,
-        dose: data.dose || null,
-        application_date: data.applicationDate,
-        created_at: isEditing ? initialValues.created_at : now,
-        updated_at: now,
-      };
+      const batchId = batchAnimalIds.length > 1 ? globalThis.crypto.randomUUID() : null;
 
-      await db.transaction('rw', [db.health_records, db.sync_queue], async () => {
-        if (isEditing) {
-          await db.health_records.put(recordData);
-          await addToSyncQueue('health_records', 'UPDATE', recordData);
-        } else {
-          await db.health_records.add(recordData);
-          await addToSyncQueue('health_records', 'INSERT', recordData);
-        }
-      });
+      if (batchAnimalIds.length > 0) {
+        // --- MODO LOTE ---
+        const records = batchAnimalIds.map(id => ({
+          id: globalThis.crypto.randomUUID(),
+          user_id: user.id,
+          animal_id: id,
+          batch_id: batchId,
+          product_type: PRODUCT_TYPE_MAP[selectedType],
+          product_name: data.productName,
+          dose: data.dose || null,
+          application_date: data.applicationDate,
+          created_at: now,
+          updated_at: now,
+        }));
+
+        await db.transaction('rw', [db.health_records, db.sync_queue], async () => {
+          await db.health_records.bulkAdd(records);
+          for (const record of records) {
+            await addToSyncQueue('health_records', 'INSERT', record);
+          }
+        });
+      } else {
+        // --- MODO INDIVIDUAL ---
+        const recordData = {
+          id: isEditing ? initialValues.id : globalThis.crypto.randomUUID(),
+          user_id: user.id,
+          animal_id: animal.id,
+          product_type: PRODUCT_TYPE_MAP[selectedType],
+          product_name: data.productName,
+          dose: data.dose || null,
+          application_date: data.applicationDate,
+          created_at: isEditing ? initialValues.created_at : now,
+          updated_at: now,
+        };
+
+        await db.transaction('rw', [db.health_records, db.sync_queue], async () => {
+          if (isEditing) {
+            await db.health_records.put(recordData);
+            await addToSyncQueue('health_records', 'UPDATE', recordData);
+          } else {
+            await db.health_records.add(recordData);
+            await addToSyncQueue('health_records', 'INSERT', recordData);
+          }
+        });
+      }
 
       setShowToast(true);
       await new Promise(r => setTimeout(r, 1500));
@@ -138,7 +165,9 @@ export default function HealthForm({
       {showToast && (
         <div className="fixed z-[100] px-5 py-4 bg-[#1A3621] text-white rounded-2xl shadow-xl transition-all animate-in fade-in slide-in-from-top-5 top-5 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:-translate-x-0 font-bold text-sm flex items-center gap-3 w-[90%] max-w-sm sm:w-auto">
           <CheckCircle className="w-6 h-6 text-emerald-400" />
-          {isEditing ? 'Tratamiento actualizado' : 'Tratamiento registrado exitosamente'}
+          {batchAnimalIds.length > 0 
+            ? `Tratamiento aplicado a ${batchAnimalIds.length} animales` 
+            : (isEditing ? 'Tratamiento actualizado' : 'Tratamiento registrado exitosamente')}
         </div>
       )}
 

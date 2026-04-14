@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, Scale, Plus, X, Syringe, ClipboardPlus, CheckCircle2, XCircle, Check } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
@@ -11,14 +12,13 @@ import AnimalImage from '@/components/inventario/AnimalImage';
 import { motion, AnimatePresence } from 'motion/react';
 
 const actionOptions = [
-  { label: 'Vacunación por Lotes', icon: Syringe, href: '#' },
+  { label: 'Vacunación por Lotes', icon: Syringe, type: 'batch' },
   { label: 'Nuevo Registro', icon: ClipboardPlus, href: '/inventario/nuevo' },
 ];
 
-// --- COMPONENTE DE CHECKBOX CORREGIDO ---
+// --- COMPONENTE DE CHECKBOX ---
 const FilterCheckbox = ({ label, count, checked, onChange }) => (
   <label className="flex items-center gap-3 py-2.5 cursor-pointer group">
-    {/* EL INPUT OCULTO ES VITAL PARA QUE REACT DETECTE EL CLICK */}
     <input 
       type="checkbox" 
       className="hidden" 
@@ -62,9 +62,14 @@ const SearchInput = ({ isMobile = false, searchTerm, setSearchTerm, onOpenFilter
 );
 
 export default function InventarioPage() {
+  const router = useRouter();
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // --- ESTADOS PARA BATCH MODE ---
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [selectedAnimalIds, setSelectedAnimalIds] = useState(new Set());
   
   const [filters, setFilters] = useState({
     sex: [],
@@ -137,6 +142,35 @@ export default function InventarioPage() {
     }).length;
   };
 
+  const toggleAnimalSelection = (id) => {
+    const newSelection = new Set(selectedAnimalIds);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedAnimalIds(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedAnimalIds.size === filteredAnimals.length) {
+      setSelectedAnimalIds(new Set());
+    } else {
+      setSelectedAnimalIds(new Set(filteredAnimals.map(a => a.id)));
+    }
+  };
+
+  const handleContinueBatch = () => {
+    if (selectedAnimalIds.size === 0) return;
+    sessionStorage.setItem('batchAnimalIds', JSON.stringify(Array.from(selectedAnimalIds)));
+    router.push('/inventario/tratamiento-lote');
+  };
+
+  const cancelBatchMode = () => {
+    setIsBatchMode(false);
+    setSelectedAnimalIds(new Set());
+  };
+
   return (
     <main className="min-h-screen bg-[#F0F2EB] font-sans pb-28 relative">
       
@@ -153,7 +187,7 @@ export default function InventarioPage() {
         )}
       </AnimatePresence>
 
-      {/* --- PANEL DE FILTROS ADAPTATIVO (Mobile vs Laptop) --- */}
+      {/* --- PANEL DE FILTROS ADAPTATIVO --- */}
       <AnimatePresence>
         {isFilterOpen && (
           <motion.div
@@ -162,12 +196,9 @@ export default function InventarioPage() {
             exit={{ opacity: 0, y: 50 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed z-[60] bg-white flex flex-col shadow-2xl
-                       /* ESTILOS MOBILE (Bottom Sheet) */
                        bottom-0 left-0 w-full max-h-[85vh] rounded-t-[2rem]
-                       /* ESTILOS LAPTOP (Panel Flotante Lateral) */
                        lg:bottom-auto lg:top-24 lg:right-8 lg:left-auto lg:w-96 lg:h-auto lg:max-h-[calc(100vh-8rem)] lg:rounded-[2rem] lg:border lg:border-neutral-200"
           >
-            {/* Pillita para arrastrar (Solo visible en Mobile) */}
             <div className="w-full flex justify-center pt-3 pb-2 lg:hidden">
               <div className="w-12 h-1.5 bg-neutral-200 rounded-full"></div>
             </div>
@@ -188,7 +219,6 @@ export default function InventarioPage() {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
-              {/* Sección Estatus */}
               <div>
                 <h4 className="text-sm font-black text-neutral-900 mb-2 uppercase tracking-wider">Estatus del Animal</h4>
                 <div className="space-y-0.5">
@@ -197,7 +227,6 @@ export default function InventarioPage() {
                 </div>
               </div>
 
-              {/* Sección Género */}
               <div>
                 <h4 className="text-sm font-black text-neutral-900 mb-2 uppercase tracking-wider">Género</h4>
                 <div className="space-y-0.5">
@@ -206,7 +235,6 @@ export default function InventarioPage() {
                 </div>
               </div>
 
-              {/* Sección Categoría Ganadera */}
               <div>
                 <h4 className="text-sm font-black text-neutral-900 mb-2 uppercase tracking-wider">Categoría por Edad</h4>
                 <div className="space-y-0.5">
@@ -219,7 +247,6 @@ export default function InventarioPage() {
               </div>
             </div>
 
-            {/* Botón de Aplicar Flotante Inferior */}
             <div className="p-5 border-t border-neutral-100 bg-white lg:rounded-b-[2rem]">
               <button 
                 onClick={() => setIsFilterOpen(false)}
@@ -253,11 +280,28 @@ export default function InventarioPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-5 md:mt-8 relative z-0">
-        {/* Banner si hay filtros activos */}
-        {activeFiltersCount > 0 && (
+        {activeFiltersCount > 0 && !isBatchMode && (
           <div className="mb-4 flex items-center justify-between bg-emerald-100 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl">
             <span className="text-xs font-bold uppercase tracking-wider">Filtros Activos ({activeFiltersCount})</span>
             <button onClick={clearFilters} className="text-xs font-black underline hover:text-emerald-950 cursor-pointer">Limpiar filtros</button>
+          </div>
+        )}
+
+        {/* Banner de Modo Batch */}
+        {isBatchMode && (
+          <div className="mb-6 flex items-center justify-between bg-[#1B4820] text-white px-6 py-4 rounded-[2rem] shadow-lg shadow-[#1B4820]/20 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-xl">
+                <Syringe className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-sm font-black uppercase tracking-widest">Modo Vacunación por Lotes</span>
+            </div>
+            <button 
+              onClick={toggleSelectAll} 
+              className="text-xs font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-xl hover:bg-white/20 transition-colors"
+            >
+              {selectedAnimalIds.size === filteredAnimals.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+            </button>
           </div>
         )}
 
@@ -268,21 +312,35 @@ export default function InventarioPage() {
             animate="show"
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
           >
-            {filteredAnimals.map((animal) => (
-              <Link key={animal.id} href={`/inventario/${animal.id}`}>
+            {filteredAnimals.map((animal) => {
+              const isSelected = selectedAnimalIds.has(animal.id);
+              
+              const CardContent = (
                 <motion.article 
                   variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                  className="bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col h-full cursor-pointer group border border-neutral-200"
+                  className={`bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col h-full cursor-pointer group border-2 ${
+                    isSelected ? 'border-[#1B4820]' : 'border-neutral-200'
+                  }`}
                 >
                   <div className="relative aspect-square w-full bg-[#E5E7EB] overflow-hidden">
                     <AnimalImage 
                       photoPath={animal.photo_path} 
                       photoBlob={animal.photo_blob} 
                       alt={`#${animal.number}`} 
-                      className="w-full h-full group-hover:scale-105 transition-transform duration-500 opacity-100" 
+                      className={`w-full h-full group-hover:scale-105 transition-transform duration-500 opacity-100 ${
+                        isSelected ? 'opacity-70 grayscale-[0.3]' : ''
+                      }`} 
                     />
                     
+                    {isBatchMode && (
+                      <div className={`absolute top-3 left-3 w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all z-10 ${
+                        isSelected ? 'bg-[#1B4820] border-[#1B4820]' : 'bg-white/80 border-white shadow-sm'
+                      }`}>
+                        {isSelected && <Check className="w-4 h-4 text-white stroke-[4]" />}
+                      </div>
+                    )}
+
                     <div className={`absolute top-3 right-3 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg ${animal.status === 'Inactivo' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
                       {animal.status === 'Inactivo' ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                       <span className="text-[9px] font-black uppercase tracking-widest">{animal.status || 'Activo'}</span>
@@ -304,8 +362,18 @@ export default function InventarioPage() {
                     </div>
                   </div>
                 </motion.article>
-              </Link>
-            ))}
+              );
+
+              return isBatchMode ? (
+                <div key={animal.id} onClick={() => toggleAnimalSelection(animal.id)}>
+                   {CardContent}
+                </div>
+              ) : (
+                <Link key={animal.id} href={`/inventario/${animal.id}`}>
+                  {CardContent}
+                </Link>
+              );
+            })}
           </motion.div>
         ) : (
           <div className="text-center py-20">
@@ -314,40 +382,89 @@ export default function InventarioPage() {
         )}
       </div>
 
-      {/* FAB */}
-      <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3">
-        <AnimatePresence>
-          {isFabOpen && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.8 }}
-              className="flex flex-col items-end gap-3 mb-2"
-            >
-              {actionOptions.map((option, index) => {
-                const Icon = option.icon;
-                return (
-                  <Link 
-                    key={index}
-                    href={option.href}
-                    className="flex items-center gap-3 bg-white rounded-full py-3.5 px-6 shadow-2xl border-2 border-[#1B4820]/10 group hover:bg-[#1B4820] transition-all cursor-pointer"
-                  >
-                    <span className="text-sm font-black uppercase tracking-widest text-black group-hover:text-white transition-colors">{option.label}</span>
-                    <div className="bg-[#1B4820] p-2 rounded-full text-white group-hover:bg-white group-hover:text-[#1B4820] transition-colors"><Icon className="w-4 h-4" /></div>
-                  </Link>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* FOOTER BAR FOR BATCH MODE */}
+      <AnimatePresence>
+        {isBatchMode && (
+          <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 w-full bg-white border-t border-neutral-200 z-[60] px-6 py-5 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[2.5rem]"
+          >
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-black leading-none">{selectedAnimalIds.size}</span>
+                <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-widest mt-1">Animales Seleccionados</span>
+              </div>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button 
+                  onClick={cancelBatchMode}
+                  className="flex-1 sm:flex-initial px-8 py-4 rounded-2xl bg-neutral-100 text-neutral-600 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleContinueBatch}
+                  disabled={selectedAnimalIds.size === 0}
+                  className="flex-1 sm:flex-initial px-10 py-4 rounded-2xl bg-[#1B4820] text-white font-black text-xs uppercase tracking-widest hover:bg-emerald-900 transition-all shadow-lg shadow-[#1B4820]/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group flex items-center justify-center gap-2"
+                >
+                  Continuar
+                  <Syringe className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <button 
-          onClick={() => setIsFabOpen(!isFabOpen)}
-          className={`bg-[#1B4820] p-4 rounded-full text-white shadow-2xl transform transition-transform duration-300 cursor-pointer hover:scale-110 active:scale-95 ${isFabOpen ? 'rotate-180 bg-black' : ''}`}
-        >
-          {isFabOpen ? <X className="w-8 h-8" strokeWidth={3} /> : <Plus className="w-8 h-8" strokeWidth={3} />}
-        </button>
-      </div>
+      {!isBatchMode && (
+        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3">
+          <AnimatePresence>
+            {isFabOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                className="flex flex-col items-end gap-3 mb-2"
+              >
+                {actionOptions.map((option, index) => {
+                  const Icon = option.icon;
+                  
+                  const content = (
+                    <div 
+                      key={index}
+                      onClick={() => {
+                        if (option.type === 'batch') {
+                           setIsBatchMode(true);
+                           setIsFabOpen(false);
+                        }
+                      }}
+                      className="flex items-center gap-3 bg-white rounded-full py-3.5 px-6 shadow-2xl border-2 border-[#1B4820]/10 group hover:bg-[#1B4820] transition-all cursor-pointer"
+                    >
+                      <span className="text-sm font-black uppercase tracking-widest text-black group-hover:text-white transition-colors">{option.label}</span>
+                      <div className="bg-[#1B4820] p-2 rounded-full text-white group-hover:bg-white group-hover:text-[#1B4820] transition-colors"><Icon className="w-4 h-4" /></div>
+                    </div>
+                  );
+
+                  return option.href ? (
+                    <Link key={index} href={option.href}>
+                      {content}
+                    </Link>
+                  ) : content;
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button 
+            onClick={() => setIsFabOpen(!isFabOpen)}
+            className={`bg-[#1B4820] p-4 rounded-full text-white shadow-2xl transform transition-transform duration-300 cursor-pointer hover:scale-110 active:scale-95 ${isFabOpen ? 'rotate-180 bg-black' : ''}`}
+          >
+            {isFabOpen ? <X className="w-8 h-8" strokeWidth={3} /> : <Plus className="w-8 h-8" strokeWidth={3} />}
+          </button>
+        </div>
+      )}
     </main>
   );
 }
