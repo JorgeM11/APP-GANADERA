@@ -1,75 +1,86 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Camera } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
 
-/**
- * AnimalImage: Componente inteligente que decide qué fuente de imagen usar
- * para lograr una experiencia Offline-First perfecta.
- * * @param {string} photoPath - URL pública de Supabase Storage (Online)
- * @param {Blob} photoBlob - Archivo binario crudo guardado en Dexie (Offline)
- * @param {string} alt - Texto alternativo para accesibilidad
- * @param {string} className - Clases de CSS extra
- */
 export default function AnimalImage({ 
   photoPath, 
   photoBlob, 
-  alt = 'Foto del animal', 
-  className = '' 
+  alt, 
+  className = "", 
+  sex = "Hembra", 
+  birthDate = null 
 }) {
-  // Estado para la URL temporal creada a partir del Blob
-  const [localUrl, setLocalUrl] = useState(null);
+  const [imgSrc, setImgSrc] = useState(null);
+  const [imgError, setImgError] = useState(false);
 
-  useEffect(() => {
-    // 1. Si NO hay URL de la nube, pero SÍ hay un binario local...
-    if (!photoPath && photoBlob instanceof Blob) {
-      
-      // Creamos una URL temporal que el navegador sí puede renderizar
-      const url = URL.createObjectURL(photoBlob);
-      setLocalUrl(url);
+  // --- 0. INTELIGENCIA PARA AUTODESCUBRIR DATOS ---
+  const animalNumber = alt ? String(alt).replace('#', '').trim() : null;
 
-      // --- LIMPIEZA CRUCIAL ---
-      // Esta función se ejecuta cuando el componente desaparece de la pantalla.
-      // Es VITAL para no llenar la memoria del teléfono de URLs fantasma.
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    } else {
-      // Si llega una photoPath nueva, borramos la local vieja
-      setLocalUrl(null);
+  const dbAnimal = useLiveQuery(() => {
+    if (!animalNumber || animalNumber.length > 15 || animalNumber.toLowerCase().includes('foto')) {
+      return null;
     }
-  }, [photoPath, photoBlob]); // Se ejecuta si cambia el path o el blob
+    return db.animals.where('number').equals(animalNumber).first();
+  }, [animalNumber]);
 
-  // --- LÓGICA DE DECISIÓN DE FUENTE (Last Write Wins) ---
-  let finalSrc = null;
+  // --- 1. PROCESAR IMAGEN REAL ---
+  useEffect(() => {
+    setImgError(false);
+    if (photoPath) {
+      setImgSrc(photoPath);
+    } else if (photoBlob) {
+      const url = URL.createObjectURL(photoBlob);
+      setImgSrc(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setImgSrc(null);
+    }
+  }, [photoPath, photoBlob]);
 
-  if (photoPath) {
-    // 1. Prioridad Máxima: Si ya se sincronizó, usamos la nube (URL Supabase)
-    finalSrc = photoPath;
-  } else if (localUrl) {
-    // 2. Prioridad Media: Si estamos offline, usamos la URL temporal local
-    finalSrc = localUrl;
+  // --- 2. LÓGICA DE ICONO ---
+  const finalSex = dbAnimal?.sex || sex;
+  const finalBirthDate = dbAnimal?.birth_date || birthDate;
+  let isBecerro = false;
+
+  if (finalBirthDate) {
+    const months = (new Date() - new Date(finalBirthDate)) / (1000 * 60 * 60 * 24 * 30.44);
+    if (months < 12) isBecerro = true;
+  } else if (alt && (alt.toLowerCase().includes('nacer') || alt.toLowerCase().includes('destete'))) {
+    isBecerro = true;
   }
 
-  // --- RENDERIZADO CON SKELETON PLACEHOLDER ---
-  if (!finalSrc) {
-    // Si no hay ninguna foto, mostramos un ícono placeholder bonito
+  let placeholderSrc = '/placeholders/vaca.png';
+  if (isBecerro) {
+    placeholderSrc = '/placeholders/becerro.png';
+  } else if (finalSex === 'Macho') {
+    placeholderSrc = '/placeholders/toro.png';
+  }
+
+  // --- RENDER ---
+  if (!imgSrc || imgError) {
     return (
-      <div className={`flex flex-col items-center justify-center bg-neutral-100 text-neutral-400 ${className}`}>
-        <Camera className="w-1/3 h-1/3 opacity-50" strokeWidth={1} />
-        <span className="text-[5px] font-bold uppercase tracking-widest mt-1 opacity-50">SIN FOTO</span>
+      <div className={`flex items-center justify-center bg-[#E5E7EB] w-full h-full ${className}`}>
+        <img 
+          src={placeholderSrc} 
+          alt="Silueta" 
+          /* CAMBIO CLAVE: 
+             1. p-[15%]: El padding ahora es relativo al tamaño del círculo.
+             2. opacity-20: Un poco más sutil para que se vea más profesional.
+          */
+          className="w-full h-full p-[18%] object-contain opacity-30 mix-blend-multiply drop-shadow-sm transition-all" 
+        />
       </div>
     );
   }
 
   return (
-    <img
-      src={finalSrc}
-      alt={alt}
-      // Usamos object-cover para que la foto llene el espacio sin deformarse
-      className={`object-cover animate-in fade-in duration-300 ${className}`}
-      // Lazy loading para mejorar rendimiento en listados largos
-      loading="lazy" 
+    <img 
+      src={imgSrc} 
+      alt={alt || "Animal"} 
+      className={`object-cover w-full h-full ${className}`}
+      onError={() => setImgError(true)}
     />
   );
 }

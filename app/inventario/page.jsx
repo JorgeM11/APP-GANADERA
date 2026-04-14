@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, Scale, Plus, X, Syringe, ClipboardPlus, CheckCircle2, XCircle, Check } from 'lucide-react';
@@ -15,6 +15,8 @@ const actionOptions = [
   { label: 'Vacunación por Lotes', icon: Syringe, type: 'batch' },
   { label: 'Nuevo Registro', icon: ClipboardPlus, href: '/inventario/nuevo' },
 ];
+
+const ITEMS_PER_PAGE = 50;
 
 // --- COMPONENTE DE CHECKBOX ---
 const FilterCheckbox = ({ label, count, checked, onChange }) => (
@@ -66,6 +68,9 @@ export default function InventarioPage() {
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // --- ESTADO DE PAGINACIÓN ---
+  const [currentPage, setCurrentPage] = useState(1);
   
   // --- ESTADOS PARA BATCH MODE ---
   const [isBatchMode, setIsBatchMode] = useState(false);
@@ -122,6 +127,18 @@ export default function InventarioPage() {
     });
   }, [allAnimals, searchTerm, filters]);
 
+  // --- REINICIAR PAGINACIÓN AL FILTRAR O BUSCAR ---
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filters]);
+
+  // --- PAGINACIÓN ---
+  const totalPages = Math.ceil(filteredAnimals.length / ITEMS_PER_PAGE);
+  const paginatedAnimals = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAnimals.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAnimals, currentPage]);
+
   const getCount = (type, value) => {
     if (!allAnimals) return 0;
     return allAnimals.filter(a => {
@@ -156,6 +173,7 @@ export default function InventarioPage() {
     if (selectedAnimalIds.size === filteredAnimals.length) {
       setSelectedAnimalIds(new Set());
     } else {
+      // Selecciona todos los filtrados (incluso los de otras páginas)
       setSelectedAnimalIds(new Set(filteredAnimals.map(a => a.id)));
     }
   };
@@ -172,7 +190,7 @@ export default function InventarioPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F0F2EB] font-sans pb-28 relative">
+    <main className="min-h-screen bg-[#F0F2EB] font-sans pb-32 relative">
       
       {/* OVERLAY FONDO OSCURO */}
       <AnimatePresence>
@@ -208,11 +226,11 @@ export default function InventarioPage() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={clearFilters}
-                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-600 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
+                  className="bg-neutral-100 hover:bg-neutral-200 text-neutral-600 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Borrar
                 </button>
-                <button onClick={() => setIsFilterOpen(false)} className="hidden lg:flex p-1.5 hover:bg-neutral-100 rounded-lg text-neutral-500">
+                <button onClick={() => setIsFilterOpen(false)} className="hidden lg:flex p-1.5 hover:bg-neutral-100 rounded-lg text-neutral-500 cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -250,7 +268,7 @@ export default function InventarioPage() {
             <div className="p-5 border-t border-neutral-100 bg-white lg:rounded-b-[2rem]">
               <button 
                 onClick={() => setIsFilterOpen(false)}
-                className="w-full bg-[#1B4820] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-950 transition-colors shadow-lg shadow-[#1B4820]/20"
+                className="w-full bg-[#1B4820] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-950 transition-colors shadow-lg shadow-[#1B4820]/20 cursor-pointer"
               >
                 Ver {filteredAnimals.length} Resultados
               </button>
@@ -280,6 +298,7 @@ export default function InventarioPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-5 md:mt-8 relative z-0">
+        
         {activeFiltersCount > 0 && !isBatchMode && (
           <div className="mb-4 flex items-center justify-between bg-emerald-100 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl">
             <span className="text-xs font-bold uppercase tracking-wider">Filtros Activos ({activeFiltersCount})</span>
@@ -298,83 +317,108 @@ export default function InventarioPage() {
             </div>
             <button 
               onClick={toggleSelectAll} 
-              className="text-xs font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-xl hover:bg-white/20 transition-colors"
+              className="text-xs font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-xl hover:bg-white/20 transition-colors cursor-pointer"
             >
               {selectedAnimalIds.size === filteredAnimals.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
             </button>
           </div>
         )}
 
-        {filteredAnimals.length > 0 ? (
-          <motion.div 
-            variants={{ show: { transition: { staggerChildren: 0.1 } } }}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
-          >
-            {filteredAnimals.map((animal) => {
-              const isSelected = selectedAnimalIds.has(animal.id);
-              
-              const CardContent = (
-                <motion.article 
-                  variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
-                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                  className={`bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col h-full cursor-pointer group border-2 ${
-                    isSelected ? 'border-[#1B4820]' : 'border-neutral-200'
-                  }`}
+        {paginatedAnimals.length > 0 ? (
+          <>
+            <motion.div 
+              variants={{ show: { transition: { staggerChildren: 0.1 } } }}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
+            >
+              {paginatedAnimals.map((animal) => {
+                const isSelected = selectedAnimalIds.has(animal.id);
+                
+                const CardContent = (
+                  <motion.article 
+                    variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0 } }}
+                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                    className={`bg-white rounded-[2rem] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 flex flex-col h-full cursor-pointer group border-2 ${
+                      isSelected ? 'border-[#1B4820]' : 'border-neutral-200'
+                    }`}
+                  >
+                    <div className="relative aspect-square w-full bg-[#E5E7EB] overflow-hidden">
+                      <AnimalImage 
+                        photoPath={animal.photo_path} 
+                        photoBlob={animal.photo_blob} 
+                        alt={`#${animal.number}`} 
+                        className={`w-full h-full group-hover:scale-105 transition-transform duration-500 opacity-100 ${
+                          isSelected ? 'opacity-70 grayscale-[0.3]' : ''
+                        }`} 
+                      />
+                      
+                      {isBatchMode && (
+                        <div className={`absolute top-3 left-3 w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all z-10 ${
+                          isSelected ? 'bg-[#1B4820] border-[#1B4820]' : 'bg-white/80 border-white shadow-sm'
+                        }`}>
+                          {isSelected && <Check className="w-4 h-4 text-white stroke-[4]" />}
+                        </div>
+                      )}
+
+                      <div className={`absolute top-3 right-3 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg ${animal.status === 'Inactivo' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                        {animal.status === 'Inactivo' ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        <span className="text-[9px] font-black uppercase tracking-widest">{animal.status || 'Activo'}</span>
+                      </div>
+                    </div>
+
+                    <div className="px-5 pt-4 pb-6 flex flex-col justify-between flex-1 gap-1">
+                      <div>
+                        <div className={`inline-block px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white mb-2 ${animal.sex === 'Hembra' ? 'bg-pink-600' : 'bg-blue-700'}`}>
+                          {animal.sex}
+                        </div>
+                        <h2 className="text-2xl font-black text-black leading-tight mb-1">#{animal.number}</h2>
+                        <p className="text-xs text-neutral-700 font-bold uppercase tracking-wider">{calculateAge(animal.birth_date)}</p>
+                      </div>
+
+                      <div className="flex items-center text-black mt-4 bg-neutral-100 border border-neutral-200 w-fit px-3 py-2 rounded-xl">
+                        <Scale className="w-4 h-4 mr-2 text-[#1B4820]" strokeWidth={3} />
+                        <span className="text-sm font-black tracking-tight">{formatWeight(animal.last_weight_kg)}</span>
+                      </div>
+                    </div>
+                  </motion.article>
+                );
+
+                return isBatchMode ? (
+                  <div key={animal.id} onClick={() => toggleAnimalSelection(animal.id)}>
+                     {CardContent}
+                  </div>
+                ) : (
+                  <Link key={animal.id} href={`/inventario/${animal.id}`}>
+                    {CardContent}
+                  </Link>
+                );
+              })}
+            </motion.div>
+
+            {/* --- CONTROLES DE PAGINACIÓN --- */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-10 mb-8 bg-white px-6 py-4 rounded-3xl border border-neutral-200 shadow-sm gap-4">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-full sm:w-auto px-6 py-3 bg-neutral-100 text-neutral-600 font-black text-xs uppercase tracking-widest rounded-2xl disabled:opacity-40 transition-colors hover:bg-neutral-200 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <div className="relative aspect-square w-full bg-[#E5E7EB] overflow-hidden">
-                    <AnimalImage 
-                      photoPath={animal.photo_path} 
-                      photoBlob={animal.photo_blob} 
-                      alt={`#${animal.number}`} 
-                      className={`w-full h-full group-hover:scale-105 transition-transform duration-500 opacity-100 ${
-                        isSelected ? 'opacity-70 grayscale-[0.3]' : ''
-                      }`} 
-                    />
-                    
-                    {isBatchMode && (
-                      <div className={`absolute top-3 left-3 w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all z-10 ${
-                        isSelected ? 'bg-[#1B4820] border-[#1B4820]' : 'bg-white/80 border-white shadow-sm'
-                      }`}>
-                        {isSelected && <Check className="w-4 h-4 text-white stroke-[4]" />}
-                      </div>
-                    )}
-
-                    <div className={`absolute top-3 right-3 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg ${animal.status === 'Inactivo' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
-                      {animal.status === 'Inactivo' ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      <span className="text-[9px] font-black uppercase tracking-widest">{animal.status || 'Activo'}</span>
-                    </div>
-                  </div>
-
-                  <div className="px-5 pt-4 pb-6 flex flex-col justify-between flex-1 gap-1">
-                    <div>
-                      <div className={`inline-block px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white mb-2 ${animal.sex === 'Hembra' ? 'bg-pink-600' : 'bg-blue-700'}`}>
-                        {animal.sex}
-                      </div>
-                      <h2 className="text-2xl font-black text-black leading-tight mb-1">#{animal.number}</h2>
-                      <p className="text-xs text-neutral-700 font-bold uppercase tracking-wider">{calculateAge(animal.birth_date)}</p>
-                    </div>
-
-                    <div className="flex items-center text-black mt-4 bg-neutral-100 border border-neutral-200 w-fit px-3 py-2 rounded-xl">
-                      <Scale className="w-4 h-4 mr-2 text-[#1B4820]" strokeWidth={3} />
-                      <span className="text-sm font-black tracking-tight">{formatWeight(animal.last_weight_kg)}</span>
-                    </div>
-                  </div>
-                </motion.article>
-              );
-
-              return isBatchMode ? (
-                <div key={animal.id} onClick={() => toggleAnimalSelection(animal.id)}>
-                   {CardContent}
-                </div>
-              ) : (
-                <Link key={animal.id} href={`/inventario/${animal.id}`}>
-                  {CardContent}
-                </Link>
-              );
-            })}
-          </motion.div>
+                  Anterior
+                </button>
+                <span className="text-xs font-black text-neutral-500 uppercase tracking-widest">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-full sm:w-auto px-6 py-3 bg-[#1B4820] text-white font-black text-xs uppercase tracking-widest rounded-2xl disabled:opacity-40 transition-colors hover:bg-emerald-900 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-20">
             <p className="text-lg font-black text-neutral-400 uppercase tracking-widest">Sin resultados</p>
@@ -400,14 +444,14 @@ export default function InventarioPage() {
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button 
                   onClick={cancelBatchMode}
-                  className="flex-1 sm:flex-initial px-8 py-4 rounded-2xl bg-neutral-100 text-neutral-600 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-colors"
+                  className="flex-1 sm:flex-initial px-8 py-4 rounded-2xl bg-neutral-100 text-neutral-600 font-black text-xs uppercase tracking-widest hover:bg-neutral-200 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button 
                   onClick={handleContinueBatch}
                   disabled={selectedAnimalIds.size === 0}
-                  className="flex-1 sm:flex-initial px-10 py-4 rounded-2xl bg-[#1B4820] text-white font-black text-xs uppercase tracking-widest hover:bg-emerald-900 transition-all shadow-lg shadow-[#1B4820]/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-initial px-10 py-4 rounded-2xl bg-[#1B4820] text-white font-black text-xs uppercase tracking-widest hover:bg-emerald-900 transition-all shadow-lg shadow-[#1B4820]/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group flex items-center justify-center gap-2 cursor-pointer"
                 >
                   Continuar
                   <Syringe className="w-4 h-4 group-hover:rotate-12 transition-transform" />
