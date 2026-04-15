@@ -58,7 +58,7 @@ const ImageUploader = ({ preview, onCapture, onRemove, label, id }) => {
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
-            className="absolute top-3 right-3 bg-red-500 text-white p-2.5 rounded-full shadow-lg hover:bg-red-600 active:scale-90 transition-all z-10"
+            className="absolute top-3 right-3 bg-red-500 text-white p-2.5 rounded-full shadow-lg hover:bg-red-600 active:scale-90 transition-all z-10 cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -77,12 +77,10 @@ const ImageUploader = ({ preview, onCapture, onRemove, label, id }) => {
 export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, onOpenModal, isModal = false }) {
   const router = useRouter();
   const [activeAccordions, setActiveAccordions] = useState({ birth: false, weaning: false, service: false });
-  
-  // Guardamos IDs de eventos existentes para edición y evitar duplicados
   const [eventIds, setEventIds] = useState({ birth: null, weaning: null });
 
   const [images, setImages] = useState({
-    main: { blob: null, preview: initialValues?.photo_path || null }, // Mostrar foto actual al editar
+    main: { blob: null, preview: initialValues?.photo_path || null },
     birth: { blob: null, preview: null },
     weaning: { blob: null, preview: null }
   });
@@ -93,7 +91,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   const [isSavingQuickService, setIsSavingQuickService] = useState(false);
   const [quickServiceData, setQuickServiceData] = useState({ date: '', type: 'Monta Natural' });
 
-  // Mapeamos last_weight_kg de la DB al campo current_weight_kg del form para que se refleje al editar
   const defaultValuesMapped = useMemo(() => {
     if (!initialValues) return { sex: 'Macho', status: 'Activo' };
     return {
@@ -112,16 +109,11 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   const fatherId = watch('father_id');
   const motherId = watch('mother_id');
 
-  // --- CARGA DE DATOS DE EVENTOS AL EDITAR ---
+  // --- CARGA DE DATOS AL EDITAR ---
   useEffect(() => {
     const loadExistingEvents = async () => {
       if (!initialValues?.id) return;
-
-      const events = await db.growth_events
-        .where('animal_id')
-        .equals(initialValues.id)
-        .toArray();
-
+      const events = await db.growth_events.where('animal_id').equals(initialValues.id).toArray();
       const birth = events.find(e => e.event_type === 'Nacimiento');
       const weaning = events.find(e => e.event_type === 'Destete');
 
@@ -145,7 +137,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         setImages(prev => ({ ...prev, weaning: { blob: null, preview: weaning.photo_path } }));
       }
     };
-
     loadExistingEvents();
   }, [initialValues, setValue]);
 
@@ -182,7 +173,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       if (s.father_number) {
         toroInfo = ` (Toro: #${s.father_number})`;
       } else if (s.father_id) {
-        // En caso de que sea un texto viejo ingresado y no un id, lo mostramos, si no (es uuid), lo damos por eliminado
         if (s.father_id.includes('-') && s.father_id.length > 20) {
              toroInfo = ` (Toro: Desconocido/Eliminado)`;
         } else {
@@ -191,7 +181,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       } else {
         toroInfo = ` (Sin Toro)`;
       }
-      
       return {
         value: s.id,
         label: `${new Date(s.service_date).toLocaleDateString()} - ${s.type_conception}${toroInfo}`
@@ -221,6 +210,23 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
     setImages(prev => ({ ...prev, [type]: { blob: null, preview: null } }));
   };
 
+  // --- FUNCIÓN CLAVE: OBTENER USUARIO INCLUSO SIN INTERNET ---
+  const getSafeUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user.id;
+
+    // Si no hay sesión válida (caducó offline), verificamos nuestro Pase VIP local
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const isOfflineAuthorized = localStorage.getItem("ganadera_offline_session") === "true";
+      if (isOfflineAuthorized) {
+        // Robamos el ID de usuario de cualquier animal guardado para mantener la consistencia
+        const anyAnimal = await db.animals.toCollection().first();
+        return anyAnimal?.user_id || "offline-user";
+      }
+    }
+    return null; // Si devuelve null, sí pateamos al Login
+  };
+
   const handleQuickServiceCreate = async () => {
     if (!quickServiceData.date) return alert('Selecciona una fecha para el servicio');
     if (isSavingQuickService) return;
@@ -228,18 +234,17 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
     setIsSavingQuickService(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
+      const userId = await getSafeUserId();
 
-      if (!user) {
-        setToast({ show: true, type: 'error', message: 'No hay sesión activa' });
+      if (!userId) {
+        setToast({ show: true, type: 'error', message: 'Sesión expirada. Conéctate a internet.' });
         router.push('/login');
         return;
       }
 
       const newService = {
         id: crypto.randomUUID(),
-        user_id: user.id,
+        user_id: userId,
         mother_id: motherId,
         father_id: fatherId || null,
         type_conception: quickServiceData.type,
@@ -270,11 +275,10 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
 
   const handleSave = async (data) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
+      const userId = await getSafeUserId();
 
-      if (!user) {
-        alert('No hay sesión activa en el teléfono. Por favor, inicia sesión.');
+      if (!userId) {
+        alert('Sesión expirada. Por favor, conéctate a internet e inicia sesión nuevamente.');
         router.push('/login');
         return;
       }
@@ -304,7 +308,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       await db.transaction('rw', [db.animals, db.growth_events, db.sync_queue], async () => {
         const animalData = {
           id: animalId,
-          user_id: user.id,
+          user_id: userId,
           number: data.number,
           sex: data.sex,
           status: data.status || 'Activo',
@@ -335,7 +339,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         if (data.birth_date) {
           const birthEvent = {
             id: eventIds.birth || crypto.randomUUID(),
-            user_id: user.id,
+            user_id: userId,
             animal_id: animalId,
             event_type: 'Nacimiento',
             event_date: data.birth_date,
@@ -355,7 +359,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         if (data.weaning_date) {
           const weaningEvent = {
             id: eventIds.weaning || crypto.randomUUID(),
-            user_id: user.id,
+            user_id: userId,
             animal_id: animalId,
             event_type: 'Destete',
             event_date: data.weaning_date,
@@ -427,8 +431,8 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         <div>
           <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Sexo del Animal</label>
           <div className="grid grid-cols-2 gap-3">
-            <button type="button" onClick={() => setValue('sex', 'Macho')} className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedSex === 'Macho' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>MACHO</button>
-            <button type="button" onClick={() => setValue('sex', 'Hembra')} className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedSex === 'Hembra' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>HEMBRA</button>
+            <button type="button" onClick={() => setValue('sex', 'Macho')} className={`py-3 rounded-xl font-bold text-sm transition-all border cursor-pointer ${selectedSex === 'Macho' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>MACHO</button>
+            <button type="button" onClick={() => setValue('sex', 'Hembra')} className={`py-3 rounded-xl font-bold text-sm transition-all border cursor-pointer ${selectedSex === 'Hembra' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>HEMBRA</button>
           </div>
         </div>
 
@@ -545,7 +549,7 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
                       </div>
                     )}
 
-                    <button type="button" onClick={() => setShowQuickService(true)} className="w-full flex items-center justify-center gap-2 bg-neutral-50 border border-dashed border-neutral-300 hover:border-[#1B4820] hover:text-[#1B4820] hover:bg-emerald-50 text-neutral-600 font-bold py-3.5 rounded-xl transition-all text-xs">
+                    <button type="button" onClick={() => setShowQuickService(true)} className="w-full flex items-center justify-center gap-2 bg-neutral-50 border border-dashed border-neutral-300 hover:border-[#1B4820] hover:text-[#1B4820] hover:bg-emerald-50 text-neutral-600 font-bold py-3.5 rounded-xl transition-all text-xs cursor-pointer">
                       <Plus className="w-4 h-4" />
                       REGISTRAR NUEVO SERVICIO
                     </button>

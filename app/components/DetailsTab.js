@@ -91,7 +91,8 @@ export default function DetailsTab({ animal, onEdit }) {
               label="Padre (Semental)" 
               value={
                 animal.father_id ? (
-                  <Link href={`/inventario/${animal.father_id}`} className="hover:underline hover:text-[#1A3621] transition-colors cursor-pointer inline-flex items-center">
+                  // --- ENLACE AL PERFIL DEL PADRE ACTUALIZADO ---
+                  <Link href={`/inventario/perfil?id=${animal.father_id}`} prefetch={true} className="hover:underline hover:text-[#1A3621] transition-colors cursor-pointer inline-flex items-center">
                     {parents?.father?.number ? `#${parents.father.number}` : `#${animal.father_id.split('-')[0]}`}
                   </Link>
                 ) : (
@@ -103,7 +104,8 @@ export default function DetailsTab({ animal, onEdit }) {
               label="Madre (Vientre)" 
               value={
                 animal.mother_id ? (
-                  <Link href={`/inventario/${animal.mother_id}`} className="hover:underline hover:text-[#1A3621] transition-colors cursor-pointer inline-flex items-center">
+                  // --- ENLACE AL PERFIL DE LA MADRE ACTUALIZADO ---
+                  <Link href={`/inventario/perfil?id=${animal.mother_id}`} prefetch={true} className="hover:underline hover:text-[#1A3621] transition-colors cursor-pointer inline-flex items-center">
                     {parents?.mother?.number ? `#${parents.mother.number}` : `#${animal.mother_id.split('-')[0]}`}
                   </Link>
                 ) : (

@@ -171,7 +171,6 @@ export default function InventarioPage() {
     if (selectedAnimalIds.size === filteredAnimals.length) {
       setSelectedAnimalIds(new Set());
     } else {
-      // Selecciona todos los filtrados (incluso los de otras páginas)
       setSelectedAnimalIds(new Set(filteredAnimals.map(a => a.id)));
     }
   };
@@ -189,6 +188,18 @@ export default function InventarioPage() {
 
   return (
     <main className="min-h-screen bg-[#F0F2EB] font-sans pb-32 relative">
+
+      {/* --- TRABAJADORES INVISIBLES PARA CACHÉ OFFLINE --- */}
+      {/* Esto asegura que los moldes se descarguen silenciosamente al abrir la lista */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <Link href="/inventario/perfil" prefetch={true} />
+        <Link href="/inventario/perfil/tacto" prefetch={true} />
+        <Link href="/inventario/perfil/evento" prefetch={true} />
+        <Link href="/inventario/perfil/servicio" prefetch={true} />
+        <Link href="/inventario/perfil/tratamiento" prefetch={true} />
+        <Link href="/inventario/nuevo" prefetch={true} />
+        <Link href="/inventario/tratamiento-lote" prefetch={true} />
+      </div>
 
       {/* OVERLAY FONDO OSCURO */}
       <AnimatePresence>
@@ -384,7 +395,8 @@ export default function InventarioPage() {
                     {CardContent}
                   </div>
                 ) : (
-                  <Link key={animal.id} href={`/inventario/${animal.id}`}>
+                  // --- ESTE ES EL NUEVO ENLACE HACIA EL PERFIL ESTÁTICO ---
+                  <Link key={animal.id} href={`/inventario/perfil?id=${animal.id}`} prefetch={true}>
                     {CardContent}
                   </Link>
                 );
@@ -487,7 +499,7 @@ export default function InventarioPage() {
                   );
 
                   return option.href ? (
-                    <Link key={index} href={option.href}>
+                    <Link key={index} href={option.href} prefetch={true}>
                       {content}
                     </Link>
                   ) : content;

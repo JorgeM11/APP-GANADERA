@@ -16,6 +16,7 @@ import AnimalImage from '@/components/inventario/AnimalImage';
 import BottomSheet from '@/components/ui/BottomSheet';
 import HealthForm from '@/components/inventario/HealthForm';
 import { TbMedicineSyrup } from "react-icons/tb";
+
 const PRODUCT_STYLES = {
   'Vacuna': { icon: Syringe, color: 'bg-[#EEF7EE] text-[#1B4820]' },
   'Desparasitante': { icon: TbMedicineSyrup, color: 'bg-[#FDF2E9] text-[#8C6746]' },
@@ -129,8 +130,8 @@ export default function HealthTab({ animal }) {
         )}
       </div>
 
-      {/* 5. BOTÓN FLOTANTE (FAB) */}
-      <Link href={`/inventario/${animalId}/tratamiento`}>
+      {/* 5. BOTÓN FLOTANTE (FAB) CON LA NUEVA RUTA */}
+      <Link href={`/inventario/perfil/tratamiento?id=${animalId}`} prefetch={true}>
         <button className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1B4820] text-white p-4 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all z-50 cursor-pointer">
           <Plus className="w-7 h-7" strokeWidth={3} />
         </button>

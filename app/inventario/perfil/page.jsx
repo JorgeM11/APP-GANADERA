@@ -1,6 +1,8 @@
-"use client"
-import React, { useState, use } from 'react';
+"use client";
+
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, List, TrendingUp, ShieldPlus, Share2, Baby, Loader2 } from 'lucide-react';
 import { FaVenusMars } from 'react-icons/fa6';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -15,27 +17,30 @@ import ReproductionTab from '../../components/ReproductionTab';
 import BottomSheet from '@/components/ui/BottomSheet';
 import AnimalForm from '@/components/inventario/AnimalForm';
 
-export default function AnimalProfilePage({ params }) {
-  const resolvedParams = use(params);
-  const animalId = resolvedParams.id;
-  const [activeTab, setActiveTab] = useState('details');
+// 1. CREAMOS EL CONTENIDO PRINCIPAL SEPARADO PARA QUE NEXT.JS LO EMPAQUETE BIEN
+function ProfileContent() {
+  const searchParams = useSearchParams();
+  // CAPTURAMOS EL ID Y EL TAB DIRECTAMENTE DE LA URL (?id=...&tab=...)
+  const animalId = searchParams.get("id"); 
+  const initialTab = searchParams.get("tab") || 'details';
+  
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Consulta reactiva a Dexie
-  const animal = useLiveQuery(() => db.animals.get(animalId), [animalId]);
+  // Consulta reactiva a Dexie usando el ID de la URL
+  const animal = useLiveQuery(() => {
+    if (animalId) return db.animals.get(animalId);
+    return null;
+  }, [animalId]);
 
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const queryParams = new URLSearchParams(window.location.search);
-      const tab = queryParams.get('tab');
-      if (tab) {
-        setActiveTab(tab);
-      }
-    }
-  }, []);
+  // Sincronizar el tab si cambia en la URL (opcional pero buena práctica)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
-  // Mientras carga el animal inicial
-  if (animal === undefined) {
+  // Mientras carga el animal inicial o si no hay ID en la URL
+  if (animal === undefined || !animalId) {
     return (
       <div className="min-h-screen bg-[#F7F7F2] flex flex-col items-center justify-center text-[#1B4820]">
         <Loader2 className="w-10 h-10 animate-spin mb-4" />
@@ -44,7 +49,7 @@ export default function AnimalProfilePage({ params }) {
     );
   }
 
-  // Si el animal no existe
+  // Si el animal no existe en Dexie
   if (animal === null) {
     return (
       <div className="min-h-screen bg-[#F7F7F2] flex flex-col items-center justify-center text-[#1B4820] px-6 text-center">
@@ -64,17 +69,16 @@ export default function AnimalProfilePage({ params }) {
   ];
 
   if (animal.sex === 'Hembra') {
-    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: FaVenusMars }); // <-- AQUÍ EL CAMBIO
+    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: FaVenusMars });
   }
 
   navItems.push({ id: 'genealogy', label: 'Genealogía', icon: Share2 });
 
   return (
     <main className="min-h-screen bg-[#F7F7F2] font-sans pb-24 md:pb-8 relative">
-
       {/* HEADER FIJO */}
       <header className="bg-[#F7F7F2] px-4 py-4 sticky top-0 z-30 flex items-center gap-4 border-b border-neutral-100 md:border-none">
-        <Link href="/inventario" className="p-2 -ml-2 hover:bg-neutral-200 rounded-full transition-colors">
+        <Link href="/inventario" className="p-2 -ml-2 hover:bg-neutral-200 rounded-full transition-colors cursor-pointer">
           <ArrowLeft className="w-6 h-6 text-[#1B4820]" />
         </Link>
         <h1 className="text-xl font-bold text-[#1B4820]">
@@ -86,7 +90,7 @@ export default function AnimalProfilePage({ params }) {
       </header>
 
       <div className="max-w-6xl mx-auto">
-        {/* NAVEGACIÓN DESKTOP (CENTRADAS) */}
+        {/* NAVEGACIÓN DESKTOP */}
         <nav className="hidden md:flex items-center justify-center gap-8 border-b border-neutral-200 mb-6 px-8 sticky top-[72px] bg-[#F7F7F2] z-20 pt-2">
           {navItems.map((item) => (
             <button
@@ -118,7 +122,7 @@ export default function AnimalProfilePage({ params }) {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.id ? 'text-[#1B4820]' : 'text-neutral-400'
+              className={`flex flex-col items-center gap-1 transition-colors cursor-pointer ${activeTab === item.id ? 'text-[#1B4820]' : 'text-neutral-400'
                 }`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -143,5 +147,19 @@ export default function AnimalProfilePage({ params }) {
         />
       </BottomSheet>
     </main>
+  );
+}
+
+// 2. EXPORTAMOS LA PÁGINA ENVUELTA EN SUSPENSE PARA QUE FUNCIONE EL CACHÉ OFFLINE
+export default function AnimalProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F7F7F2] flex flex-col items-center justify-center text-[#1B4820]">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs opacity-60">Cargando...</p>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }

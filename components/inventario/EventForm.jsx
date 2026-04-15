@@ -26,8 +26,7 @@ import BottomSheet from "@/components/ui/BottomSheet";
 
 /**
  * EventForm: Formulario reutilizable para CREAR o EDITAR eventos de vida.
- * 
- * @param {Object} animal - Datos del animal actual.
+ * * @param {Object} animal - Datos del animal actual.
  * @param {Object} initialValues - Datos del evento si es edición (GrowthEvent).
  * @param {Array} existingEvents - Lista de eventos del animal para validación.
  * @param {Function} onSubmitSuccess - Callback tras guardado exitoso.
@@ -172,14 +171,34 @@ export default function EventForm({
     return tipoEvento;
   };
 
+  // --- FUNCIÓN CLAVE: OBTENER USUARIO INCLUSO SIN INTERNET ---
+  const getSafeUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user.id;
+
+    // Si no hay sesión válida (caducó offline), verificamos nuestro Pase VIP local
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const isOfflineAuthorized = localStorage.getItem("ganadera_offline_session") === "true";
+      if (isOfflineAuthorized) {
+        // Robamos el ID de usuario del animal al que le estamos agregando el evento
+        if (animal?.user_id) return animal.user_id;
+        
+        // Plan C: Buscamos cualquier animal
+        const anyAnimal = await db.animals.toCollection().first();
+        return anyAnimal?.user_id || "offline-user";
+      }
+    }
+    return null; 
+  };
+
   const onSubmit = async (data) => {
     if (isSaving || isDuplicateBlocked) return;
     setIsSaving(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
+      const userId = await getSafeUserId();
+      
+      if (!userId) {
         window.location.href = '/login';
         return;
       }
@@ -202,7 +221,7 @@ export default function EventForm({
 
       const eventData = {
         id: isEditing ? initialValues.id : crypto.randomUUID(),
-        user_id: user.id,
+        user_id: userId,
         animal_id: animal.id,
         event_type: getDisplayTitleExternal(),
         event_date: data.fechaEvento,
@@ -500,14 +519,14 @@ export default function EventForm({
                 setIsModalOpen(false);
                 setTipoEvento(isEditing ? (["Destete", "Peso a los 12 meses", "Peso a los 18 meses"].includes(initialValues.event_type) ? initialValues.event_type : "Destete") : "Destete");
               }}
-              className="flex-1 py-5 font-black text-gray-500 bg-gray-100 rounded-full uppercase tracking-widest text-xs transition-all active:scale-95"
+              className="flex-1 py-5 font-black text-gray-500 bg-gray-100 rounded-full uppercase tracking-widest text-xs transition-all active:scale-95 cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="button"
               onClick={handleModalConfirm}
-              className="flex-1 py-5 font-black text-white bg-emerald-700 rounded-full shadow-lg shadow-emerald-900/20 uppercase tracking-widest text-xs transition-all active:scale-95"
+              className="flex-1 py-5 font-black text-white bg-emerald-700 rounded-full shadow-lg shadow-emerald-900/20 uppercase tracking-widest text-xs transition-all active:scale-95 cursor-pointer"
             >
               Confirmar
             </button>

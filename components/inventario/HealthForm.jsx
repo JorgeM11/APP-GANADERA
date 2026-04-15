@@ -48,8 +48,7 @@ const PRODUCT_TYPE_REVERSE = {
 
 /**
  * HealthForm: Formulario para CREAR o EDITAR registros médicos.
- * 
- * @param {Object} animal - Datos del animal.
+ * * @param {Object} animal - Datos del animal.
  * @param {Object} initialValues - Registro médico si es edición.
  * @param {Function} onSubmitSuccess - Callback éxito.
  * @param {Function} onCancel - Callback cancelar.
@@ -88,14 +87,34 @@ export default function HealthForm({
     },
   });
 
+  // --- FUNCIÓN CLAVE: OBTENER USUARIO INCLUSO SIN INTERNET ---
+  const getSafeUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user.id;
+
+    // Si no hay sesión válida (caducó offline), verificamos nuestro Pase VIP local
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const isOfflineAuthorized = localStorage.getItem("ganadera_offline_session") === "true";
+      if (isOfflineAuthorized) {
+        // Robamos el ID de usuario del animal al que le aplicamos el tratamiento
+        if (animal?.user_id) return animal.user_id;
+        
+        // Plan C: Buscamos cualquier animal (útil para batch mode o si falla lo anterior)
+        const anyAnimal = await db.animals.toCollection().first();
+        return anyAnimal?.user_id || "offline-user";
+      }
+    }
+    return null; 
+  };
+
   const onSubmit = async (data) => {
     if (isSaving) return;
     setIsSaving(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
+      const userId = await getSafeUserId();
+      
+      if (!userId) {
         window.location.href = '/login';
         return;
       }
@@ -107,7 +126,7 @@ export default function HealthForm({
         // --- MODO LOTE ---
         const records = batchAnimalIds.map(id => ({
           id: globalThis.crypto.randomUUID(),
-          user_id: user.id,
+          user_id: userId,
           animal_id: id,
           batch_id: batchId,
           product_type: PRODUCT_TYPE_MAP[selectedType],
@@ -128,7 +147,7 @@ export default function HealthForm({
         // --- MODO INDIVIDUAL ---
         const recordData = {
           id: isEditing ? initialValues.id : globalThis.crypto.randomUUID(),
-          user_id: user.id,
+          user_id: userId,
           animal_id: animal.id,
           product_type: PRODUCT_TYPE_MAP[selectedType],
           product_name: data.productName,

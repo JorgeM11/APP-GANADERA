@@ -1,24 +1,28 @@
 "use client";
 
-import { use } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Syringe } from "lucide-react";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Loader2, Stethoscope } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 
 // Importaciones Core
 import { db } from "@/lib/db";
-import ServicioForm from "@/components/inventario/ServicioForm";
+import TactoForm from "@/components/inventario/TactoForm";
 
-export default function ServicioPage({ params }) {
+// 1. EL CONTENIDO PRINCIPAL SEPARADO PARA LEER LA URL
+function TactoContent() {
   const router = useRouter();
-  const resolvedParams = use(params);
-  const animalId = resolvedParams.id;
+  const searchParams = useSearchParams();
+  const animalId = searchParams.get("id"); // Leemos el ID desde ?id=...
 
   // --- CONSULTAS REACTIVAS (DEXIE) ---
-  const animal = useLiveQuery(() => db.animals.get(animalId), [animalId]);
+  const animal = useLiveQuery(() => {
+    if (animalId) return db.animals.get(animalId);
+    return null;
+  }, [animalId]);
 
   // --- GUARDS DE CARGA ---
-  if (animal === undefined) {
+  if (animal === undefined || !animalId) {
     return (
       <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621]">
         <Loader2 className="w-10 h-10 animate-spin mb-4" />
@@ -32,7 +36,7 @@ export default function ServicioPage({ params }) {
       <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621] px-6 text-center">
         <h2 className="text-2xl font-black mb-2">Animal no encontrado</h2>
         <p className="text-sm text-neutral-500 mb-6 font-medium">No se pudo cargar la información para este registro.</p>
-        <button onClick={() => router.back()} className="bg-[#1A3621] text-white px-8 py-3 rounded-full font-bold text-sm">VOLVER</button>
+        <button onClick={() => router.back()} className="bg-[#1A3621] text-white px-8 py-3 rounded-full font-bold text-sm cursor-pointer">VOLVER</button>
       </div>
     );
   }
@@ -52,29 +56,44 @@ export default function ServicioPage({ params }) {
       {/* Hero Section */}
       <section className="px-5 mt-6 mb-8 sm:px-6 sm:mt-8 sm:mb-10 max-w-2xl mx-auto">
         <div className="flex items-center gap-2 mb-3">
-          <Syringe size={14} strokeWidth={2.5} className="text-[#1A3621]" />
+          <Stethoscope size={14} strokeWidth={2.5} className="text-[#1A3621]" />
           <span className="font-sans text-xs font-bold uppercase tracking-widest text-[#1A3621]">
             GESTIÓN GANADERA
           </span>
         </div>
 
         <span className="font-display text-[2.5rem] sm:text-5xl leading-[1.05] font-extrabold text-[#1A3621] mb-3 block">
-          Registrar<br className="sm:hidden" /> Servicio
+          Registrar<br className="sm:hidden" /> Tacto
         </span>
 
         <p className="font-sans text-base font-medium text-gray-500 leading-relaxed max-w-[500px] sm:max-w-2xl mt-4">
-          Registre el inicio del ciclo reproductivo (Monta o IA) para monitorear la eficiencia de su ganado.
+          Ingrese el resultado de la evaluación veterinaria para llevar un control estricto de la preñez.
         </p>
       </section>
 
       {/* Form Section */}
       <section className="px-5 sm:px-6 space-y-6 sm:space-y-10 max-w-2xl mx-auto">
-        <ServicioForm
+        <TactoForm
           animal={animal}
-          onSubmitSuccess={() => router.push(`/inventario/${animalId}?tab=reproduction`)}
+          // --- AQUÍ ACTUALIZAMOS LA RUTA DE ÉXITO ---
+          onSubmitSuccess={() => router.push(`/inventario/perfil?id=${animalId}&tab=reproduction`)}
           onCancel={() => router.back()}
         />
       </section>
     </main>
+  );
+}
+
+// 2. EXPORTAMOS LA PÁGINA ENVUELTA EN SUSPENSE PARA EL CACHÉ OFFLINE
+export default function TactoPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621]">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs opacity-60">Preparando formulario...</p>
+      </div>
+    }>
+      <TactoContent />
+    </Suspense>
   );
 }
