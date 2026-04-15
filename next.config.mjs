@@ -8,8 +8,32 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
-  cacheStartUrl: true, // Vital para que el dinosaurio no aparezca al abrir la app
-  dynamicStartUrl: false, // Asegura que la ruta de inicio se trate de forma estática
+  cacheStartUrl: true,
+  dynamicStartUrl: false,
+  workboxOptions: {
+    runtimeCaching: [
+      {
+        // Esta regla atrapa la navegación normal Y los paquetes ocultos de Next.js (_rsc)
+        urlPattern: ({ request, url }) => {
+          const isNavigate = request.mode === "navigate";
+          const isRSC = url.searchParams.has("_rsc");
+          return isNavigate || isRSC;
+        },
+        handler: "NetworkFirst",
+        options: {
+          cacheName: "next-app-router-cache",
+          networkTimeoutSeconds: 3, // Se rinde rápido si no hay internet
+          expiration: {
+            maxEntries: 150,
+            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+          },
+          cacheableResponse: {
+            statuses: [0, 200],
+          },
+        },
+      },
+    ],
+  },
 });
 
 /** @type {import('next').NextConfig} */

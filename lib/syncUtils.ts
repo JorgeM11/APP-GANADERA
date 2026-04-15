@@ -25,16 +25,12 @@ export async function processSyncQueue() {
       const payloadToUpload = { ...item.payload };
 
       // --- MAGIA OFFLINE PARA IMÁGENES ---
-      // Si el item se guardó sin internet, tiene un 'photo_blob' pero no tiene 'photo_path' (URL).
-      // Debemos subir esa imagen a Supabase AHORA que sí hay internet.
       if (payloadToUpload.photo_blob && !payloadToUpload.photo_path) {
         try {
           const fileName = `offline-sync-${item.table_name}-${payloadToUpload.id}`;
           const url = await uploadImageToSupabase(payloadToUpload.photo_blob, fileName);
           
-          payloadToUpload.photo_path = url; // Le asignamos la URL real
-          
-          // Actualizamos Dexie para que sepa que este registro ya tiene URL
+          payloadToUpload.photo_path = url; 
           await db.table(item.table_name).update(payloadToUpload.id, { photo_path: url });
         } catch (imgErr) {
           console.error('[Sync Engine] Error subiendo imagen rezagada', imgErr);
@@ -76,7 +72,9 @@ export async function processSyncQueue() {
         error_message: err.message || 'Error desconocido' 
       });
       
-      throw err; // Lanzar error para que runFullSync lo atrape
+      // ¡AQUÍ ESTABA EL PROBLEMA! Quitamos el "throw err" y ponemos un "continue".
+      // Así, si falla este item, el loop sigue intentando con los demás sin explotar.
+      continue; 
     }
   }
 }
@@ -85,7 +83,6 @@ export async function processSyncQueue() {
  * 2. PULL: De Nube a Local
  */
 export async function pullFromServer() {
-  // USAMOS getSession PARA NO DEPENDER DEL SERVIDOR SI LA RED ESTÁ INESTABLE
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   if (!user) return;
@@ -108,7 +105,6 @@ export async function pullFromServer() {
 
     if (serverData && serverData.length > 0) {
       for (const record of serverData) {
-        // Si hay una foto en la nube, la descargamos al celular
         if ((table === 'animals' || table === 'growth_events') && record.photo_path) {
           try {
             const response = await fetch(record.photo_path);
@@ -142,13 +138,29 @@ export async function runFullSync() {
   isSyncing = true;
   store.setSyncStatus('SYNCING');
 
+  let pushFailed = false;
+  let pullFailed = false;
+
+  // BLINDAJE: Push y Pull están en cajas de cristal separadas
   try {
     await processSyncQueue(); 
-    await pullFromServer();
+  } catch (err) {
+    console.error('[Sync Engine] Fallo crítico durante el PUSH', err);
+    pushFailed = true;
+  }
 
+  try {
+    await pullFromServer();
+  } catch (err) {
+    console.error('[Sync Engine] Fallo crítico durante el PULL', err);
+    pullFailed = true;
+  }
+
+  // Evaluación de estado final
+  try {
     const errorCount = await db.sync_queue.where('status').equals('ERROR').count();
     
-    if (errorCount > 0) {
+    if (errorCount > 0 || pushFailed || pullFailed) {
       store.setSyncStatus('ERROR');
     } else {
       store.setSyncStatus('UP_TO_DATE');
@@ -158,9 +170,6 @@ export async function runFullSync() {
         }
       }, 3000);
     }
-  } catch (err) {
-    console.error('[Sync Engine] Fallo en Sincronización Maestra', err);
-    store.setSyncStatus('ERROR');
   } finally {
     isSyncing = false; 
   }
@@ -185,6 +194,6 @@ export async function addToSyncQueue(
   if (navigator.onLine) {
     setTimeout(() => {
       runFullSync();
-    }, 500); // Aumenté el retraso a 500ms por seguridad de Dexie
+    }, 500); 
   }
 }
