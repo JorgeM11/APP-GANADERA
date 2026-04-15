@@ -5,51 +5,28 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
-  // --- MAGIA EXTREMA PARA OFFLINE ---
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
   workboxOptions: {
-    disableDevLogs: true,
     runtimeCaching: [
       {
-        // Atrapa cualquier intento de cargar una página (como /perfil/123)
-        urlPattern: ({ request }) => request.mode === 'navigate',
-        handler: 'NetworkFirst', // Intenta internet primero, si falla, usa el caché
+        // Esta es la regla de oro: Atrapa la ruta de perfil y la guarda para siempre
+        urlPattern: /^\/inventario\/perfil($|\?)/,
+        handler: 'CacheFirst', // Prioriza el molde guardado sobre internet
         options: {
-          cacheName: 'pages-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
-          },
-          // Si el celular ni siquiera tiene la página en caché, muestra un HTML de respaldo
-          // (Opcional, pero evita que la app se rompa por completo)
-        },
+          cacheName: 'animal-shell-cache',
+          expiration: { maxEntries: 1, maxAgeSeconds: 365 * 24 * 60 * 60 }
+        }
       },
       {
-        // Atrapa todos los archivos estáticos de Next.js (JS, CSS, imágenes)
-        urlPattern: /\.(?:js|css|webp|png|jpg|jpeg|svg)$/i,
+        urlPattern: /\.(?:js|css|json|webp|png|jpg)$/i,
         handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'static-assets',
-        },
+        options: { cacheName: 'static-assets' }
       }
-    ],
-  },
+    ]
+  }
 });
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-  },
-};
-
-export default withPWA(nextConfig);
+export default withPWA({
+  images: { remotePatterns: [{ protocol: 'https', hostname: '**.unsplash.com' }] }
+});
