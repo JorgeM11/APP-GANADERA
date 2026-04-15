@@ -1,7 +1,9 @@
-"use client"
-import React, { useState, use } from 'react';
+'use client';
+
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, List, TrendingUp, ShieldPlus, Share2, Baby, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, List, TrendingUp, ShieldPlus, Share2, Loader2 } from 'lucide-react';
 import { FaVenusMars } from 'react-icons/fa6';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
@@ -15,26 +17,24 @@ import ReproductionTab from '../../components/ReproductionTab';
 import BottomSheet from '@/components/ui/BottomSheet';
 import AnimalForm from '@/components/inventario/AnimalForm';
 
-export default function AnimalProfilePage({ params }) {
-  const resolvedParams = use(params);
-  const animalId = resolvedParams.id;
-  const [activeTab, setActiveTab] = useState('details');
+// 1. Extraemos la lógica a un sub-componente. 
+// Esto es OBLIGATORIO en Next.js al usar useSearchParams para que funcione estático/offline.
+function AnimalProfileContent() {
+  const searchParams = useSearchParams();
+  const animalId = searchParams.get('id'); // Sacamos el ID de la URL (?id=...)
+  
+  // Leemos la pestaña de la URL si existe, sino usamos 'details'
+  const initialTab = searchParams.get('tab') || 'details';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Consulta reactiva a Dexie
-  const animal = useLiveQuery(() => db.animals.get(animalId), [animalId]);
+  // Consulta reactiva a Dexie usando el ID de la URL
+  const animal = useLiveQuery(
+    () => (animalId ? db.animals.get(animalId) : null), 
+    [animalId]
+  );
 
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const queryParams = new URLSearchParams(window.location.search);
-      const tab = queryParams.get('tab');
-      if (tab) {
-        setActiveTab(tab);
-      }
-    }
-  }, []);
-
-  // Mientras carga el animal inicial
+  // Mientras carga el animal inicial (o si no hay ID en la URL)
   if (animal === undefined) {
     return (
       <div className="min-h-screen bg-[#F7F7F2] flex flex-col items-center justify-center text-[#1B4820]">
@@ -44,7 +44,7 @@ export default function AnimalProfilePage({ params }) {
     );
   }
 
-  // Si el animal no existe
+  // Si el animal no existe en Dexie
   if (animal === null) {
     return (
       <div className="min-h-screen bg-[#F7F7F2] flex flex-col items-center justify-center text-[#1B4820] px-6 text-center">
@@ -64,7 +64,7 @@ export default function AnimalProfilePage({ params }) {
   ];
 
   if (animal.sex === 'Hembra') {
-    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: FaVenusMars }); // <-- AQUÍ EL CAMBIO
+    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: FaVenusMars });
   }
 
   navItems.push({ id: 'genealogy', label: 'Genealogía', icon: Share2 });
@@ -143,5 +143,19 @@ export default function AnimalProfilePage({ params }) {
         />
       </BottomSheet>
     </main>
+  );
+}
+
+// 2. Componente principal que envuelve en Suspense
+export default function AnimalProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F7F7F2] flex flex-col items-center justify-center text-[#1B4820]">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs opacity-60">Preparando Entorno...</p>
+      </div>
+    }>
+      <AnimalProfileContent />
+    </Suspense>
   );
 }
