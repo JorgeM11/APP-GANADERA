@@ -24,7 +24,7 @@ export default function PartosTab({ animalId }) {
             <h3 className="font-bold text-gray-800 text-lg mt-1">Nacimiento de Cría #{calf.number}</h3>
             <p className="text-sm text-gray-500 mt-2">
               Sexo: <span className="font-bold text-[#1B4820]">{calf.sex}</span> • 
-              Peso al nacer: <span className="font-bold text-[#1B4820]">{calf.birth_weight_kg ? `${calf.birth_weight_kg} kg` : 'N/A'}</span>
+             
             </p>
           </div>
         ))

@@ -2,6 +2,7 @@
 import React, { useState, use } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, List, TrendingUp, ShieldPlus, Share2, Baby, Loader2 } from 'lucide-react';
+import { FaVenusMars } from 'react-icons/fa6';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 
@@ -63,7 +64,7 @@ export default function AnimalProfilePage({ params }) {
   ];
 
   if (animal.sex === 'Hembra') {
-    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: Baby });
+    navItems.push({ id: 'reproduction', label: 'Reproducción', icon: FaVenusMars }); // <-- AQUÍ EL CAMBIO
   }
 
   navItems.push({ id: 'genealogy', label: 'Genealogía', icon: Share2 });
@@ -91,7 +92,7 @@ export default function AnimalProfilePage({ params }) {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-2 pb-3 -mb-[2px] transition-colors border-b-2 font-bold uppercase tracking-widest text-xs ${activeTab === item.id ? 'text-[#1B4820] border-[#1B4820]' : 'text-neutral-400 border-transparent hover:text-[#1B4820]'
+              className={`flex items-center cursor-pointer gap-2 pb-3 -mb-[2px] transition-colors border-b-2 font-bold uppercase tracking-widest text-xs ${activeTab === item.id ? 'text-[#1B4820] border-[#1B4820]' : 'text-neutral-400 border-transparent hover:text-[#1B4820]'
                 }`}
             >
               <item.icon className="w-4 h-4" />

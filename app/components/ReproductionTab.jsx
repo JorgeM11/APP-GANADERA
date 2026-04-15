@@ -1,6 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { Baby, Stethoscope, Syringe } from 'lucide-react';
+import { GiCow } from 'react-icons/gi'; // <-- NUEVO: Icono de Vaca moderno y limpio
+import { FaVenusMars } from 'react-icons/fa6';
 
 import PartosTab from './reproduction/PartosTab';
 import TactosTab from './reproduction/TactosTab';
@@ -11,9 +13,9 @@ export default function ReproductionTab({ animal }) {
   const animalId = animal?.id;
 
   const subTabs = [
-    { id: 'partos', label: 'Partos', icon: Baby },
-    { id: 'tactos', label: 'Tactos', icon: Stethoscope },
-    { id: 'servicios', label: 'Servicios', icon: Syringe },
+    { id: 'partos', label: 'Partos', icon: GiCow }, // <-- CAMBIADO: Vaca representando a la madre
+    { id: 'tactos', label: 'Tactos', icon: Stethoscope }, // Se mantiene igual
+    { id: 'servicios', label: 'Servicios', icon: FaVenusMars }, // <-- CAMBIADO: Símbolos de cruce/reproducción
   ];
 
   return (
@@ -25,7 +27,7 @@ export default function ReproductionTab({ animal }) {
           <button
             key={tab.id}
             onClick={() => setActiveSubTab(tab.id)}
-            className={`flex flex-row items-center justify-center gap-1.5 px-2 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id
+            className={`flex flex-row items-center cursor-pointer justify-center gap-1.5 px-2 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id
               ? 'bg-[#1B4820] text-white shadow-md'
               : 'bg-white text-gray-500 border border-neutral-200 hover:bg-neutral-50'
               }`}

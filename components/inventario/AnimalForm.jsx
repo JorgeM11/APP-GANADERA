@@ -78,11 +78,11 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   const router = useRouter();
   const [activeAccordions, setActiveAccordions] = useState({ birth: false, weaning: false, service: false });
   
-  // Guardamos IDs de eventos existentes para edición
+  // Guardamos IDs de eventos existentes para edición y evitar duplicados
   const [eventIds, setEventIds] = useState({ birth: null, weaning: null });
 
   const [images, setImages] = useState({
-    main: { blob: null, preview: initialValues?.photo_path || null },
+    main: { blob: null, preview: initialValues?.photo_path || null }, // Mostrar foto actual al editar
     birth: { blob: null, preview: null },
     weaning: { blob: null, preview: null }
   });
@@ -202,7 +202,6 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
   const serviceTypeOptions = [
     { value: 'Monta Natural', label: 'Monta Natural' },
     { value: 'Inseminación Artificial', label: 'Inseminación Artificial' },
-    { value: 'Transferencia de Embriones', label: 'Transferencia de Embriones' },
   ];
 
   const handleImageCapture = async (e, type) => {
@@ -409,41 +408,53 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
         <div className="mb-5">
           <ImageUploader id="main" label="Foto del Animal" preview={images.main.preview} onCapture={(e) => handleImageCapture(e, 'main')} onRemove={() => removeImage('main')} />
         </div>
-        <div className="mb-2">
-          <label className="text-sm font-bold text-[#1B4820] mb-2 block">Descripción del ganadero.</label>
+        <div>
+          <label className="text-sm font-bold text-[#1B4820] mb-2 block">Descripción del ganadero</label>
           <textarea {...register('observations')} placeholder="Añade una descripción visual del animal..." rows={3} className="w-full bg-white rounded-2xl px-4 py-3 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 border border-transparent focus:border-[#1B4820]/30 transition-all shadow-sm resize-none" />
         </div>
       </section>
 
       {/* 1. IDENTIFICACIÓN BÁSICA */}
-      <section className="bg-neutral-50 rounded-3xl p-5 mb-4 border border-neutral-100">
-        <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-4 block">Identificación Básica</label>
-        <div className="mb-4">
-          <input {...register('number')} placeholder="Código / Número *" className={`w-full bg-white rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 border transition-all focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 ${errors.number ? 'border-red-500' : 'border-neutral-100 focus:border-[#1B4820]/30'}`} />
+      <section className="bg-neutral-50 rounded-3xl p-5 mb-4 border border-neutral-100 space-y-4">
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2 block">Identificación Básica</h3>
+        
+        <div>
+          <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Código / Número *</label>
+          <input {...register('number')} placeholder="Ej: 1234" className={`w-full bg-white rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 border transition-all focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 ${errors.number ? 'border-red-500' : 'border-neutral-100 focus:border-[#1B4820]/30'}`} />
           {errors.number && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.number.message}</p>}
         </div>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <button type="button" onClick={() => setValue('sex', 'Macho')} className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedSex === 'Macho' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>MACHO</button>
-          <button type="button" onClick={() => setValue('sex', 'Hembra')} className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedSex === 'Hembra' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>HEMBRA</button>
+
+        <div>
+          <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Sexo del Animal</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => setValue('sex', 'Macho')} className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedSex === 'Macho' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>MACHO</button>
+            <button type="button" onClick={() => setValue('sex', 'Hembra')} className={`py-3 rounded-xl font-bold text-sm transition-all border ${selectedSex === 'Hembra' ? 'bg-[#1B4820] text-white border-[#1B4820]' : 'bg-white text-neutral-500 border-neutral-100'}`}>HEMBRA</button>
+          </div>
         </div>
-        <input {...register('color')} placeholder="Color (Ej: Rojo Suave)" className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20" />
+
+        <div>
+          <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Color del Animal</label>
+          <input {...register('color')} placeholder="Ej: Rojo Suave" className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 placeholder-neutral-400 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20" />
+        </div>
       </section>
 
       {/* ESTADO Y DISPONIBILIDAD */}
-      <section className="bg-white rounded-3xl p-5 mb-4 border border-neutral-100 shadow-sm">
-        <CustomSelect
-          label="Estado del Animal"
-          value={selectedStatus}
-          onChange={(val) => setValue('status', val)}
-          options={[
-            { value: 'Activo', label: '🟢 Activo (En el inventario)' },
-            { value: 'Inactivo', label: '🔴 Inactivo (Vendido, Muerte, etc.)' }
-          ]}
-        />
+      <section className="bg-white rounded-3xl p-5 mb-4 border border-neutral-100 shadow-sm space-y-4">
+        <div>
+          <CustomSelect
+            label="Estado del Animal"
+            value={selectedStatus}
+            onChange={(val) => setValue('status', val)}
+            options={[
+              { value: 'Activo', label: '🟢 Activo (En el inventario)' },
+              { value: 'Inactivo', label: '🔴 Inactivo (Vendido, Muerte, etc.)' }
+            ]}
+          />
+        </div>
 
         {selectedStatus === 'Inactivo' && (
-          <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1.5 block">Razón de la Inactividad</label>
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Razón de la Inactividad</label>
             <textarea
               {...register('inactivity_reason')}
               placeholder="Ej: Vendido para carne, muerte por enfermedad..."
@@ -454,13 +465,19 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
       </section>
 
       {/* GENEALOGÍA */}
-      <section className="bg-neutral-100/50 rounded-3xl p-5 mb-4 border border-neutral-100">
-        <div className="flex items-center gap-3 mb-5">
+      <section className="bg-neutral-100/50 rounded-3xl p-5 mb-4 border border-neutral-100 space-y-4">
+        <div className="flex items-center gap-3 mb-2">
           <div className="w-1 h-5 rounded-full bg-[#8C6746]"></div>
           <h3 className="text-lg font-bold text-[#1B4820]">Genealogía</h3>
         </div>
-        <GenealogySelector label="Padre (Toro)" sex="Macho" value={fatherId} onChange={(id) => setValue('father_id', id)} onCreateNew={(sex) => onOpenModal && onOpenModal(sex, (id) => setValue('father_id', id))} />
-        <GenealogySelector label="Madre (Vaca)" sex="Hembra" value={motherId} onChange={(id) => setValue('mother_id', id)} onCreateNew={(sex) => onOpenModal && onOpenModal(sex, (id) => setValue('mother_id', id))} />
+        
+        <div>
+          <GenealogySelector label="Padre (Toro)" sex="Macho" value={fatherId} onChange={(id) => setValue('father_id', id)} onCreateNew={(sex) => onOpenModal && onOpenModal(sex, (id) => setValue('father_id', id))} />
+        </div>
+        
+        <div>
+          <GenealogySelector label="Madre (Vaca)" sex="Hembra" value={motherId} onChange={(id) => setValue('mother_id', id)} onCreateNew={(sex) => onOpenModal && onOpenModal(sex, (id) => setValue('mother_id', id))} />
+        </div>
       </section>
 
       {/* ACORDEÓN: SERVICIO DE ORIGEN */}
@@ -480,17 +497,23 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
                 {motherServices === undefined ? (
                   <p className="text-sm text-neutral-500">Cargando servicios...</p>
                 ) : showQuickService ? (
-                  <div className="bg-white p-4 rounded-2xl border border-neutral-200 shadow-sm space-y-3">
+                  <div className="bg-white p-4 rounded-2xl border border-neutral-200 shadow-sm space-y-4">
                     <h4 className="text-[10px] font-black uppercase text-[#1B4820] tracking-widest border-b border-neutral-100 pb-2">Nuevo Servicio Rápido</h4>
 
-                    <input type="date" value={quickServiceData.date} onChange={e => setQuickServiceData(d => ({ ...d, date: e.target.value }))} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+                    <div>
+                      <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Fecha del Servicio</label>
+                      <input type="date" value={quickServiceData.date} onChange={e => setQuickServiceData(d => ({ ...d, date: e.target.value }))} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+                    </div>
 
-                    <CustomSelect
-                      value={quickServiceData.type}
-                      onChange={val => setQuickServiceData(d => ({ ...d, type: val }))}
-                      options={serviceTypeOptions}
-                      bgClass="bg-neutral-50"
-                    />
+                    <div>
+                      <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Tipo de Concepción</label>
+                      <CustomSelect
+                        value={quickServiceData.type}
+                        onChange={val => setQuickServiceData(d => ({ ...d, type: val }))}
+                        options={serviceTypeOptions}
+                        bgClass="bg-neutral-50"
+                      />
+                    </div>
 
                     <div className="flex gap-3 pt-2">
                       <button type="button" disabled={isSavingQuickService} onClick={() => setShowQuickService(false)} className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold py-3.5 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed">Cancelar</button>
@@ -505,18 +528,21 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {motherServices.length === 0 ? (
                       <div className="text-center bg-white border border-neutral-100 p-4 rounded-2xl">
                         <p className="text-xs text-neutral-500 mb-2 font-medium">Esta madre no tiene servicios registrados.</p>
                       </div>
                     ) : (
-                      <CustomSelect
-                        value={originServiceId}
-                        onChange={val => setValue('origin_service_id', val)}
-                        options={motherServicesOptions}
-                        placeholder="Selecciona el servicio origen..."
-                      />
+                      <div>
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Seleccionar Servicio</label>
+                        <CustomSelect
+                          value={originServiceId}
+                          onChange={val => setValue('origin_service_id', val)}
+                          options={motherServicesOptions}
+                          placeholder="Selecciona el servicio origen..."
+                        />
+                      </div>
                     )}
 
                     <button type="button" onClick={() => setShowQuickService(true)} className="w-full flex items-center justify-center gap-2 bg-neutral-50 border border-dashed border-neutral-300 hover:border-[#1B4820] hover:text-[#1B4820] hover:bg-emerald-50 text-neutral-600 font-bold py-3.5 rounded-xl transition-all text-xs">
@@ -544,14 +570,31 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
           <div className="overflow-hidden">
             <div className="pt-5 space-y-4">
               <ImageUploader id="birth" label="Foto al Nacer" preview={images.birth.preview} onCapture={(e) => handleImageCapture(e, 'birth')} onRemove={() => removeImage('birth')} />
+              
               <div>
-                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block">Fecha de Nacimiento</label>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Fecha de Nacimiento</label>
                 <input type="date" {...register('birth_date')} className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
               </div>
-              <input type="number" step="any" {...register('birth_weight_kg')} placeholder="Peso Cría (KG)" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
-              <input type="number" step="any" {...register('mother_weight_at_birth')} placeholder="Peso Madre al Parto (KG)" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
-              <input {...register('navel_length')} placeholder="Longitud Ombligo" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
-              <textarea {...register('birth_observations')} placeholder="Observaciones del parto..." rows={2} className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none resize-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Peso de la Cría al Nacer (KG)</label>
+                <input type="number" step="any" {...register('birth_weight_kg')} placeholder="Ej: 35" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Peso Madre al Parto (KG)</label>
+                <input type="number" step="any" {...register('mother_weight_at_birth')} placeholder="Ej: 450" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Longitud del Ombligo (CM)</label>
+                <input {...register('navel_length')} placeholder="Ej: 5" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Observaciones del Parto</label>
+                <textarea {...register('birth_observations')} placeholder="Detalles u observaciones del parto..." rows={2} className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none resize-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
             </div>
           </div>
         </div>
@@ -570,14 +613,31 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
           <div className="overflow-hidden">
             <div className="pt-5 space-y-4">
               <ImageUploader id="weaning" label="Foto al Destete" preview={images.weaning.preview} onCapture={(e) => handleImageCapture(e, 'weaning')} onRemove={() => removeImage('weaning')} />
-              <input type="date" {...register('weaning_date')} className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
-              <input type="number" step="any" {...register('weaning_weight_kg')} placeholder="Peso al Destete (KG)" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
               
-              {/* INPUT DE CIRC. ESCROTAL MOVIDO AQUÍ */}
-              <input type="number" step="any" {...register('sc_at_weaning')} placeholder="Circ. Escrotal al Destete (CM)" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Fecha de Destete</label>
+                <input type="date" {...register('weaning_date')} className="w-full bg-white rounded-xl px-4 py-3 text-neutral-800 border border-neutral-100 focus:outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
               
-              <input type="number" step="any" {...register('mother_weight_at_weaning')} placeholder="Peso Madre al Destete" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
-              <textarea {...register('weaning_observations')} placeholder="Observaciones del destete..." rows={2} className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none resize-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Peso al Destete (KG)</label>
+                <input type="number" step="any" {...register('weaning_weight_kg')} placeholder="Ej: 180" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Circ. Escrotal al Destete (CM)</label>
+                <input type="number" step="any" {...register('sc_at_weaning')} placeholder="Ej: 20" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Peso Madre al Destete (KG)</label>
+                <input type="number" step="any" {...register('mother_weight_at_weaning')} placeholder="Ej: 420" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
+              
+              <div>
+                <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Observaciones del Destete</label>
+                <textarea {...register('weaning_observations')} placeholder="Detalles u observaciones del destete..." rows={2} className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none resize-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+              </div>
             </div>
           </div>
         </div>
@@ -589,10 +649,10 @@ export default function AnimalForm({ initialValues, onSubmitSuccess, onCancel, o
           <div className="w-1 h-5 rounded-full bg-[#1B4820]"></div>
           <h3 className="text-lg font-bold text-[#1B4820]">Peso Actual</h3>
         </div>
-        <div className="grid grid-cols-1 gap-4"> {/* Cambiado a 1 columna ya que solo queda un input */}
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block">Peso Actual (KG)</label>
-            <input type="number" step="any" {...register('current_weight_kg')} placeholder="0.00" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
+            <label className="text-[10px] font-bold text-neutral-400 uppercase mb-1 block ml-1">Peso Actual (KG)</label>
+            <input type="number" step="any" {...register('current_weight_kg')} placeholder="Ej: 250" className="w-full bg-white rounded-xl px-4 py-3 border border-neutral-100 outline-none focus:ring-2 focus:ring-[#1B4820]/20 transition-all" />
           </div>
         </div>
       </section>

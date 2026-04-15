@@ -15,11 +15,11 @@ import { formatWeight } from '@/lib/dateUtils';
 import AnimalImage from '@/components/inventario/AnimalImage';
 import BottomSheet from '@/components/ui/BottomSheet';
 import HealthForm from '@/components/inventario/HealthForm';
-
+import { TbMedicineSyrup } from "react-icons/tb";
 const PRODUCT_STYLES = {
   'Vacuna': { icon: Syringe, color: 'bg-[#EEF7EE] text-[#1B4820]' },
-  'Desparasitante': { icon: Pill, color: 'bg-[#FDF2E9] text-[#8C6746]' },
-  'Vitamina': { icon: Apple, color: 'bg-[#F7F9EE] text-[#4F663F]' },
+  'Desparasitante': { icon: TbMedicineSyrup, color: 'bg-[#FDF2E9] text-[#8C6746]' },
+  'Vitamina': { icon: Pill, color: 'bg-[#F7F9EE] text-[#4F663F]' },
   'Antibiótico': { icon: Stethoscope, color: 'bg-[#FEECEC] text-[#D15555]' },
 };
 

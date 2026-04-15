@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+// Importa el nuevo icono
+import { TbMedicineSyrup } from "react-icons/tb";
 import { useForm } from "react-hook-form";
 import {
   Syringe,
@@ -24,8 +26,9 @@ import BottomSheet from "@/components/ui/BottomSheet";
 
 const PRODUCT_TYPE_OPTIONS = [
   { id: 'vacuna', label: 'Vacuna', icon: Syringe, color: 'bg-[#EEF7EE] text-[#1B4820]', activeColor: 'ring-4 ring-[#1B4820]/10 border-[#1B4820]' },
-  { id: 'desparasitante', label: 'Desparasitante', icon: Pill, color: 'bg-[#FDF2E9] text-[#8C6746]', activeColor: 'ring-4 ring-[#8C6746]/10 border-[#8C6746]' },
-  { id: 'vitamina', label: 'Vitamina', icon: Apple, color: 'bg-[#F7F9EE] text-[#4F663F]', activeColor: 'ring-4 ring-[#4F663F]/10 border-[#4F663F]' },
+  { 
+  id: 'desparasitante',label: 'Desparasitante',icon: TbMedicineSyrup, color: 'bg-[#FDF2E9] text-[#8C6746]',activeColor: 'ring-4 ring-[#8C6746]/10 border-[#8C6746]' },
+{ id: 'vitamina', label: 'Vitamina', icon: Pill, color: 'bg-[#F7F9EE] text-[#4F663F]', activeColor: 'ring-4 ring-[#4F663F]/10 border-[#4F663F]' },
   { id: 'antibiotico', label: 'Antibiótico', icon: Stethoscope, color: 'bg-[#FEECEC] text-[#D15555]', activeColor: 'ring-4 ring-[#D15555]/10 border-[#D15555]' },
 ];
 
