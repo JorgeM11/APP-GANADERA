@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 
 export default function SyncStatus() {
   const { isOnline, syncStatus, pendingItemsCount } = useSyncStore();
-  
+
   // --- SOLUCIÓN AL ERROR DE HIDRATACIÓN ---
   const [mounted, setMounted] = useState(false);
 
@@ -76,15 +76,15 @@ export default function SyncStatus() {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={handleSyncClick}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-transparent transition-all shadow-sm cursor-pointer ${bgColor}`}
+      className={`flex items-center gap-2 px-1 sm:px-3 py-1.5 rounded-full border border-transparent transition-all shadow-sm cursor-pointer ${bgColor}`}
     >
       <div className={isRotating ? 'animate-spin' : ''}>
-        <StatusIcon className={`w-4 h-4 ${statusColor}`} />
+        <StatusIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${statusColor}`} />
       </div>
-      <span className={`text-[10px] font-bold uppercase tracking-wider ${statusColor}`}>
+      <span className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-wider ${statusColor}`}>
         {statusText}
       </span>
-      
+
       {pendingItemsCount > 0 && syncStatus !== 'SYNCING' && isOnline && (
         <span className="flex h-2 w-2 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
