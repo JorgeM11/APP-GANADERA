@@ -122,7 +122,8 @@ export default function EvolutionTab({ animal }) {
         )}
       </div>
 
-      <Link href={`/inventario/${animalId}/evento`} className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1B4820] text-white p-4 rounded-full shadow-2xl z-50 transition-all active:scale-95 cursor-pointer">
+      {/* --- ENLACE ACTUALIZADO HACIA EVENTO --- */}
+      <Link href={`/inventario/perfil/evento?id=${animalId}`} prefetch={true} className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1B4820] text-white p-4 rounded-full shadow-2xl z-50 transition-all active:scale-95 cursor-pointer">
         <Plus className="w-7 h-7" strokeWidth={3} />
       </Link>
 

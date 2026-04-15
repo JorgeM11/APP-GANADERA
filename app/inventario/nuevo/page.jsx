@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import AnimalForm from '@/components/inventario/AnimalForm';
 import BottomSheet from '@/components/ui/BottomSheet';
 import { AnimatePresence } from 'motion/react';
 
-export default function NuevoAnimalPage() {
+// 1. SEPARAMOS EL CONTENIDO DEL FORMULARIO
+function NuevoAnimalContent() {
   const router = useRouter();
   
   // Cada elemento: { id: string, sex: 'Macho'|'Hembra', onSelect: (id) => void }
@@ -30,8 +31,6 @@ export default function NuevoAnimalPage() {
 
   /**
    * Manejador de éxito para modales.
-   * Usamos una actualización funcional para evitar problemas de "stale closures" (cierres obsoletos)
-   * asegurando que siempre trabajamos con la versión más reciente de la pila de modales.
    */
   const handleModalSuccess = useCallback((newAnimalId) => {
     setModalStack(prev => {
@@ -55,7 +54,7 @@ export default function NuevoAnimalPage() {
       {/* HEADER PRINCIPAL */}
       <header className="px-4 py-5 sticky top-0 z-20 bg-[#FCFCFA]/80 backdrop-blur-md border-b border-neutral-100">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <Link href="/inventario" className="p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors">
+          <Link href="/inventario" className="p-2 -ml-2 hover:bg-neutral-100 rounded-full transition-colors cursor-pointer">
             <ArrowLeft className="w-6 h-6 text-[#1B4820]" />
           </Link>
           <h1 className="text-xl font-bold text-[#1B4820]">
@@ -94,7 +93,20 @@ export default function NuevoAnimalPage() {
           </BottomSheet>
         ))}
       </AnimatePresence>
-
     </main>
+  );
+}
+
+// 2. EXPORTAMOS LA PÁGINA ENVUELTA EN SUSPENSE PARA EL CACHÉ OFFLINE
+export default function NuevoAnimalPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FCFCFA] flex flex-col items-center justify-center text-[#1B4820]">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs opacity-60">Preparando formulario...</p>
+      </div>
+    }>
+      <NuevoAnimalContent />
+    </Suspense>
   );
 }

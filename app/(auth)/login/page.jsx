@@ -20,15 +20,26 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
 
-  // --- SOLUCIÓN AL BLOQUEO OFFLINE ---
-  // Al abrir la app, revisa si ya hay sesión guardada en el disco del celular.
-  // Funciona 100% sin internet.
+  // --- SOLUCIÓN AL BLOQUEO OFFLINE Y TOKENS CADUCADOS ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const verificarAcceso = async () => {
+      // 1. Primero intentamos con el oficial (Supabase)
+      const { data: { session } } = await supabase.auth.getSession();
+
       if (session) {
+        // Sesión válida: renovamos el Pase VIP local y entramos
+        localStorage.setItem("ganadera_offline_session", "true");
         router.push("/inventario");
+      } else if (!navigator.onLine) {
+        // 2. EL TRUCO: Si NO hay internet y el token caducó, leemos el Pase VIP local
+        const paseVip = localStorage.getItem("ganadera_offline_session");
+        if (paseVip === "true") {
+          router.push("/inventario");
+        }
       }
-    });
+    };
+
+    verificarAcceso();
   }, [router]);
   // ------------------------------------
 
@@ -49,6 +60,8 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (authData.session) {
+        // Guardamos el Pase VIP local al iniciar sesión con éxito
+        localStorage.setItem("ganadera_offline_session", "true");
         router.push("/inventario");
       }
     } catch (error) {

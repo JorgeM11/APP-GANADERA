@@ -59,6 +59,26 @@ export default function TactoForm({
     },
   });
 
+  // --- FUNCIÓN CLAVE: OBTENER USUARIO INCLUSO SIN INTERNET ---
+  const getSafeUserId = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user.id;
+
+    // Si no hay sesión válida (caducó offline), verificamos nuestro Pase VIP local
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const isOfflineAuthorized = localStorage.getItem("ganadera_offline_session") === "true";
+      if (isOfflineAuthorized) {
+        // Robamos el ID de usuario del animal al que le hacemos el tacto
+        if (animal?.user_id) return animal.user_id;
+        
+        // Plan C: Buscamos cualquier animal 
+        const anyAnimal = await db.animals.toCollection().first();
+        return anyAnimal?.user_id || "offline-user";
+      }
+    }
+    return null; 
+  };
+
   const onSubmit = async (data) => {
     if (!resultado) {
       alert("Por favor selecciona un resultado para el tacto.");
@@ -69,9 +89,9 @@ export default function TactoForm({
     setIsSaving(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
+      const userId = await getSafeUserId();
+      
+      if (!userId) {
         window.location.href = '/login';
         return;
       }
@@ -79,7 +99,7 @@ export default function TactoForm({
       const now = new Date().toISOString();
       const recordData = {
         id: isEditing ? initialValues.id : crypto.randomUUID(),
-        user_id: user.id,
+        user_id: userId,
         animal_id: animal.id,
         check_date: data.fechaTacto,
         result: RESULT_MAP[resultado],

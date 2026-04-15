@@ -69,9 +69,10 @@ export default function ServiciosTab({ animal }) {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) */}
+      {/* Floating Action Button (FAB) CON LA NUEVA RUTA */}
       <Link
-        href={`/inventario/${cleanAnimalId}/servicio`}
+        href={`/inventario/perfil/servicio?id=${cleanAnimalId}`}
+        prefetch={true}
         className="fixed bottom-28 md:bottom-10 right-6 md:right-10 bg-[#1A3621] text-white p-4 rounded-full shadow-lg z-50 transition-all active:scale-95 cursor-pointer"
       >
         <Plus className="w-7 h-7" strokeWidth={3} />

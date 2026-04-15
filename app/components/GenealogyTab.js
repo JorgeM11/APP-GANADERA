@@ -65,9 +65,9 @@ export default function GenealogyTab({ animal }) {
       return <NodeContent animal={null} label={label} variant={variant} />;
     }
 
-    // Si el animal existe, envuélvelo en un Link para navegar a su perfil
+    // --- ENLACE ACTUALIZADO A LA NUEVA RUTA CON PREFETCH ---
     return (
-      <Link href={`/inventario/${animal.id}`} className="block focus:outline-none">
+      <Link href={`/inventario/perfil?id=${animal.id}`} prefetch={true} className="block focus:outline-none">
         <NodeContent animal={animal} label={label} variant={variant} />
       </Link>
     );

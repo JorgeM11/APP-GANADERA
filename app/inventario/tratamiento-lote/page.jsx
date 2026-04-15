@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import HealthForm from "@/components/inventario/HealthForm";
 
-export default function TratamientoLotePage() {
+function LoteContent() {
   const router = useRouter();
   const [animalIds, setAnimalIds] = useState([]);
   const [animals, setAnimals] = useState([]);
@@ -42,9 +42,6 @@ export default function TratamientoLotePage() {
       console.error("Error parseando batchAnimalIds:", e);
       router.push('/inventario');
     }
-
-    // Limpiar sessionStorage al salir/desmontar opcionalmente 
-    // pero lo dejamos por si refrescan la página
   }, [router]);
 
   if (loading) {
@@ -115,5 +112,19 @@ export default function TratamientoLotePage() {
         />
       </section>
     </main>
+  );
+}
+
+// 2. EXPORTAMOS LA PÁGINA ENVUELTA EN SUSPENSE PARA EL CACHÉ OFFLINE
+export default function TratamientoLotePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621]">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs opacity-60">Preparando lote...</p>
+      </div>
+    }>
+      <LoteContent />
+    </Suspense>
   );
 }

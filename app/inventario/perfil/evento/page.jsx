@@ -1,7 +1,7 @@
 "use client";
 
-import { use } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 
@@ -9,24 +9,31 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import EventForm from "@/components/inventario/EventForm";
 
-export default function EventoDeVidaPage({ params }) {
+// 1. EL CONTENIDO PRINCIPAL SEPARADO PARA LEER LA URL
+function EventoContent() {
   const router = useRouter();
-  const resolvedParams = use(params);
-  const animalId = resolvedParams.id;
+  const searchParams = useSearchParams();
+  const animalId = searchParams.get("id"); // Leemos el ID de la URL
 
   // --- CONSULTAS REACTIVAS (DEXIE) ---
-  const animal = useLiveQuery(() => db.animals.get(animalId), [animalId]);
+  const animal = useLiveQuery(() => {
+    if (animalId) return db.animals.get(animalId);
+    return null;
+  }, [animalId]);
   
   const existingEvents = useLiveQuery(
-    () => db.growth_events
-      .where('animal_id').equals(animalId)
-      .and(e => !e.deleted_at)
-      .toArray(),
+    () => {
+      if (!animalId) return [];
+      return db.growth_events
+        .where('animal_id').equals(animalId)
+        .and(e => !e.deleted_at)
+        .toArray();
+    },
     [animalId]
   );
 
   // --- GUARDS DE CARGA ---
-  if (animal === undefined) {
+  if (animal === undefined || !animalId) {
     return (
       <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621]">
         <Loader2 className="w-10 h-10 animate-spin mb-4" />
@@ -40,7 +47,7 @@ export default function EventoDeVidaPage({ params }) {
       <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621] px-6 text-center">
         <h2 className="text-2xl font-black mb-2">Animal no encontrado</h2>
         <p className="text-sm text-neutral-500 mb-6 font-medium">No se pudo cargar la información para este registro.</p>
-        <button onClick={() => router.back()} className="bg-[#1A3621] text-white px-8 py-3 rounded-full font-bold text-sm">VOLVER</button>
+        <button onClick={() => router.back()} className="bg-[#1A3621] text-white px-8 py-3 rounded-full font-bold text-sm cursor-pointer">VOLVER</button>
       </div>
     );
   }
@@ -62,10 +69,25 @@ export default function EventoDeVidaPage({ params }) {
         <EventForm 
           animal={animal}
           existingEvents={existingEvents || []}
-          onSubmitSuccess={() => router.push(`/inventario/${animalId}?tab=evolution`)}
+          // --- AQUÍ ACTUALIZAMOS LA RUTA DE ÉXITO A LA NUEVA ESTRUCTURA ---
+          onSubmitSuccess={() => router.push(`/inventario/perfil?id=${animalId}&tab=evolution`)}
           onCancel={() => router.back()}
         />
       </div>
     </main>
+  );
+}
+
+// 2. EXPORTAMOS LA PÁGINA ENVUELTA EN SUSPENSE PARA EL CACHÉ OFFLINE
+export default function EventoDeVidaPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8F9F5] flex flex-col items-center justify-center text-[#1A3621]">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold uppercase tracking-widest text-xs opacity-60">Preparando formulario...</p>
+      </div>
+    }>
+      <EventoContent />
+    </Suspense>
   );
 }
