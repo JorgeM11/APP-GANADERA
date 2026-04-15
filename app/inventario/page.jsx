@@ -384,7 +384,7 @@ export default function InventarioPage() {
                     {CardContent}
                   </div>
                 ) : (
-                  <Link href={`/inventario/perfil?id=${animal.id}`}>
+                  <Link key={animal.id} href={`/inventario/${animal.id}`}>
                     {CardContent}
                   </Link>
                 );

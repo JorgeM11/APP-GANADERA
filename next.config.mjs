@@ -5,21 +5,30 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   register: true,
   skipWaiting: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
   workboxOptions: {
+    disableDevLogs: true,
     runtimeCaching: [
       {
-        // Esta es la regla de oro: Atrapa la ruta de perfil y la guarda para siempre
-        urlPattern: /^\/inventario\/perfil($|\?)/,
-        handler: 'CacheFirst', // Prioriza el molde guardado sobre internet
+        // 1. Atrapa cuando abres la app o recargas la página completa
+        urlPattern: ({ request }) => request.mode === 'navigate',
+        handler: 'NetworkFirst',
         options: {
-          cacheName: 'animal-shell-cache',
-          expiration: { maxEntries: 1, maxAgeSeconds: 365 * 24 * 60 * 60 }
+          cacheName: 'html-pages-cache',
+          expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 }
         }
       },
       {
-        urlPattern: /\.(?:js|css|json|webp|png|jpg)$/i,
+        // 2. Atrapa cuando haces clic en un link de Next.js dentro de la app
+        urlPattern: ({ url }) => url.pathname.includes('/_next/') || url.searchParams.has('_rsc'),
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'next-router-cache',
+          expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 }
+        }
+      },
+      {
+        // 3. Atrapa todas tus imágenes, iconos y código JS/CSS
+        urlPattern: /\.(?:js|css|json|webp|png|jpg|svg)$/i,
         handler: 'StaleWhileRevalidate',
         options: { cacheName: 'static-assets' }
       }
