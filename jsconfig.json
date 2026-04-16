@@ -3,5 +3,6 @@
     "paths": {
       "@/*": ["./*"]
     }
-  }
+  },
+  "exclude": ["node_modules", ".next", "public/sw.js", "public/workbox-*.js", "public/fallback-*.js"]
 }
