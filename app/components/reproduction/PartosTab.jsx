@@ -7,9 +7,9 @@ export default function PartosTab({ animalId }) {
   const offspring = useLiveQuery(
     () => db.animals
       .where('mother_id').equals(animalId)
-      .reverse()
-      .sortBy('birth_date')
-      .then(res => res.filter(a => !a.deleted_at)),
+      .and(a => !a.deleted_at)
+      .toArray()
+      .then(res => res.sort((a, b) => new Date(b.birth_date) - new Date(a.birth_date))),
     [animalId]
   );
 

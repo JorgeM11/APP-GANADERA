@@ -15,8 +15,8 @@ export default function ServiciosTab({ animal }) {
       if (!animalId) return [];
       const svcs = await db.services
         .where('mother_id').equals(animalId)
-        .reverse()
-        .sortBy('service_date');
+        .toArray()
+        .then(res => res.sort((a, b) => new Date(b.service_date) - new Date(a.service_date)));
       
       const filteredSvcs = svcs.filter(s => !s.deleted_at);
 

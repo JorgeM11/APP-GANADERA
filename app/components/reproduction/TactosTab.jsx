@@ -13,9 +13,9 @@ export default function TactosTab({ animal }) {
   const checks = useLiveQuery(
     () => db.pregnancy_checks
       .where('animal_id').equals(animalId)
-      .reverse()
-      .sortBy('check_date')
-      .then(res => res.filter(c => !c.deleted_at)),
+      .and(c => !c.deleted_at)
+      .toArray()
+      .then(res => res.sort((a, b) => new Date(b.check_date) - new Date(a.check_date))),
     [animalId]
   );
 

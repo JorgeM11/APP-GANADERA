@@ -2,7 +2,7 @@
   "name": "Inventario Ganadero Pro",
   "short_name": "Ganadería",
   "description": "Sistema de gestión de rebaño con soporte offline completo.",
-  "start_url": "/login",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#F0F2EB",
   "theme_color": "#1B4820",

@@ -82,9 +82,10 @@ export default function InventarioPage() {
 
   const allAnimals = useLiveQuery(
     () => db.animals
+      .orderBy('updated_at')
       .reverse()
-      .sortBy('updated_at')
-      .then(res => res.filter(a => !a.deleted_at)),
+      .filter(a => !a.deleted_at)
+      .toArray(),
     []
   );
 

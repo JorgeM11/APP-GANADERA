@@ -23,9 +23,9 @@ export default function EvolutionTab({ animal }) {
   const events = useLiveQuery(
     () => db.growth_events
       .where('animal_id').equals(animalId)
-      .reverse()
-      .sortBy('event_date')
-      .then(res => res.filter(e => !e.deleted_at)),
+      .and(e => !e.deleted_at)
+      .toArray()
+      .then(res => res.sort((a, b) => new Date(b.event_date) - new Date(a.event_date))),
     [animalId]
   );
 

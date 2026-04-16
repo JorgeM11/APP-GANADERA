@@ -10,6 +10,9 @@ const withPWA = withPWAInit({
   reloadOnOnline: true,
   cacheStartUrl: true,
   dynamicStartUrl: false,
+  fallbacks: {
+    document: "/offline.html",
+  },
   workboxOptions: {
     runtimeCaching: [
       {

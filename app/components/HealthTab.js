@@ -32,9 +32,9 @@ export default function HealthTab({ animal }) {
   const records = useLiveQuery(
     () => db.health_records
       .where('animal_id').equals(animalId)
-      .reverse()
-      .sortBy('application_date')
-      .then(res => res.filter(r => !r.deleted_at)),
+      .and(r => !r.deleted_at)
+      .toArray()
+      .then(res => res.sort((a, b) => new Date(b.application_date) - new Date(a.application_date))),
     [animalId]
   );
 
