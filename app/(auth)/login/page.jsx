@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +26,26 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState(null);
 
+  useEffect(() => {
+    const verificarAcceso = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        // Sesión válida: renovamos el Pase VIP local y entramos
+        localStorage.setItem("ganadera_offline_session", "true");
+        router.push("/inventario");
+      } else if (!navigator.onLine) {
+        // Si NO hay internet y el token caducó, leemos el Pase VIP local
+        const paseVip = localStorage.getItem("ganadera_offline_session");
+        if (paseVip === "true") {
+          router.push("/inventario");
+        }
+      }
+    };
+
+    verificarAcceso();
+  }, [router]);
+
   const {
     register,
     handleSubmit,
@@ -47,6 +67,8 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (authData.session) {
+        // Guardamos el Pase VIP local al iniciar sesión con éxito
+        localStorage.setItem("ganadera_offline_session", "true");
         // El Refresh Token ya quedó guardado en localStorage automáticamente.
         // El ganadero no necesitará volver a loguearse, incluso offline.
         router.push("/inventario");
