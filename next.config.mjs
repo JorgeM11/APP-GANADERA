@@ -16,19 +16,35 @@ const withPWA = withPWAInit({
   workboxOptions: {
     runtimeCaching: [
       {
-        // Esta regla atrapa la navegación normal Y los paquetes ocultos de Next.js (_rsc)
+        // 1. APP SHELL Y DATOS (STALE WHILE REVALIDATE)
+        // No espera a la red. Sirve el cache y actualiza por debajo.
         urlPattern: ({ request, url }) => {
           const isNavigate = request.mode === "navigate";
           const isRSC = url.searchParams.has("_rsc");
           return isNavigate || isRSC;
         },
-        handler: "NetworkFirst",
+        handler: "StaleWhileRevalidate",
         options: {
-          cacheName: "next-app-router-cache",
-          networkTimeoutSeconds: 3, // Se rinde rápido si no hay internet
+          cacheName: "next-app-router-shell",
           expiration: {
-            maxEntries: 150,
+            maxEntries: 200,
             maxAgeSeconds: 30 * 24 * 60 * 60, // 30 días
+          },
+          cacheableResponse: {
+            statuses: [0, 200],
+          },
+        },
+      },
+      {
+        // 2. MOTOR DE LA APP (CHUNKS Y JS)
+        // Los archivos que hacen que los botones funcionen
+        urlPattern: /\/_next\/static\/.+\.js$/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "next-static-js-assets",
+          expiration: {
+            maxEntries: 100,
+            maxAgeSeconds: 24 * 60 * 60 * 30, // 30 días
           },
           cacheableResponse: {
             statuses: [0, 200],
