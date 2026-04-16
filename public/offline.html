@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#1B4820" />
+  <title>App Ganadera — Modo Offline</title>
+  <style>
+    /*
+     * Estilos mínimos inline para que la pantalla de carga se vea bien
+     * incluso si el CSS principal aún no se ha cargado.
+     */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: #F0F2EB;
+      color: #1B4820;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .offline-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .offline-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #1B482020;
+      border-top-color: #1B4820;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .offline-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      opacity: 0.6;
+    }
+
+    .offline-subtitle {
+      font-size: 0.65rem;
+      font-weight: 600;
+      opacity: 0.4;
+      max-width: 260px;
+      line-height: 1.5;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!--
+    OFFLINE FALLBACK - App Ganadera
+    
+    Este archivo es servido por el Service Worker cuando:
+    1. La ruta solicitada NO está en el caché del SW
+    2. No hay conexión a internet
+    
+    ¿Cómo funciona?
+    - Los scripts JS de Next.js (React, componentes, etc.) YA están en el precache
+      permanente del SW (archivos _next/static/chunks/...).
+    - Este HTML actúa como un "trampolín" que inicia el runtime de Next.js.
+    - Next.js client-side lee `window.location.pathname` y monta el componente
+      React correspondiente (ej: InventarioPage para /inventario).
+    - Los componentes usan useLiveQuery() que lee de Dexie (IndexedDB local).
+    - Resultado: La página funciona sin internet. ✅
+  -->
+
+  <!-- Indicador de carga visible mientras Next.js inicializa -->
+  <div class="offline-container" id="offline-loading">
+    <div class="offline-spinner"></div>
+    <p class="offline-title">Cargando desde el dispositivo…</p>
+    <p class="offline-subtitle">Tus datos están guardados localmente y serán sincronizados cuando vuelvas a tener señal.</p>
+  </div>
+
+  <!-- Punto de montaje de Next.js App Router -->
+  <div id="__next"></div>
+
+  <script>
+    // Ocultar el indicador de carga cuando Next.js haya montado la app
+    (function() {
+      var observer = new MutationObserver(function(mutations) {
+        var nextRoot = document.getElementById('__next');
+        if (nextRoot && nextRoot.children.length > 0) {
+          var loader = document.getElementById('offline-loading');
+          if (loader) loader.style.display = 'none';
+          observer.disconnect();
+        }
+      });
+
+      observer.observe(document.getElementById('__next'), {
+        childList: true,
+        subtree: true
+      });
+
+      // Timeout de seguridad: si Next.js no monta en 8s, mostrar mensaje de ayuda
+      setTimeout(function() {
+        var nextRoot = document.getElementById('__next');
+        if (!nextRoot || nextRoot.children.length === 0) {
+          var loader = document.getElementById('offline-loading');
+          if (loader) {
+            loader.querySelector('.offline-title').textContent = 'Contenido no disponible offline';
+            loader.querySelector('.offline-subtitle').textContent = 
+              'Esta página necesita conexión a internet para cargarse por primera vez. Conéctate y vuelve a intentarlo.';
+            loader.querySelector('.offline-spinner').style.display = 'none';
+          }
+        }
+      }, 8000);
+    })();
+  </script>
+</body>
+</html>

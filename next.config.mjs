@@ -5,6 +5,9 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development", // Se desactiva en local para no interferir con tus pruebas
   register: true,
   skipWaiting: true,
+  fallbacks: {
+    document: "/offline.html", // Fallback offline: cuando el SW no puede servir una página, sirve este HTML shell
+  },
 });
 
 /** @type {import('next').NextConfig} */
