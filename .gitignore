@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PWA - archivos generados automáticamente en cada build por @ducanh2912/next-pwa
+# Vercel genera los suyos propios durante el deploy, no deben commitearse
+/public/sw.js
+/public/workbox-*.js
+/public/fallback-*.js
